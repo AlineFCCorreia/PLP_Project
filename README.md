@@ -14,7 +14,7 @@ Este repositório organiza o projeto da disciplina de Paradigmas de Linguagens d
 
 ## Introdução
 
-O projeto consiste na extensão da linguagem Imperativa 1 com uma pequena linguagem de comandos inspirados em SQL para manipulação de dados estruturados. A extensão permite criar tabelas, inserir registros e realizar consultas sobre os dados armazenados. 
+O projeto consiste na extensão da linguagem Imperativa 1 com uma pequena linguagem de comandos inspirados em SQL para manipulação de dados estruturados. A extensão permite criar tabelas, inserir registros e realizar consultas sobre os dados armazenados. Os dados são persistidos em um banco de dados SQLite, utilizando uma camada de ORM para o acesso e armazenamento das informações.
 
 ## Objetivos
 
@@ -30,6 +30,7 @@ Estender a linguagem Imperativa 1 com comandos para criação, inserção e cons
 - Consultar dados armazenados nas tabelas.
 - Selecionar colunas específicas nas consultas.
 - Filtrar registros utilizando condições baseadas nas expressões da linguagem.
+- Persistir os dados em um banco de dados SQLite.
 
 ## Estrutura do Repositório
 
@@ -41,7 +42,7 @@ Estender a linguagem Imperativa 1 com comandos para criação, inserção e cons
 
 A extensão adiciona três novos tipos de comandos à linguagem Imperativa 1:
 
-- `Create` —  criação da estrutura de uma tabela.
+- `Create table` —  criação da estrutura de uma tabela.
 - `Insert into` — inserção de um registro na tabela.
 - `Select [... where Expressao]` — consulta de dados, com filtragem opcional.
 
@@ -50,6 +51,53 @@ A extensão adiciona três novos tipos de comandos à linguagem Imperativa 1:
 
 - `Update` — atualização de registros existentes.
 - `Delete` — remoção de registros.
+
+## Exemplos de Uso
+
+A seguir são apresentados exemplos simples dos novos comandos adicionados à linguagem.
+
+### Criar uma tabela
+O comando `Create table` permite criar uma tabela informando suas colunas e respectivos tipos:
+
+```text
+create table pessoas (
+    nome string,
+    idade int
+);
+```
+
+### Inserir um registro
+
+O comando `Insert into` permite inserir valores em uma tabela:
+
+```text
+insert into pessoas values ("Alice", 25);
+```
+
+### Consultar todos os dados
+
+O comando `Select` permite consultar todos os registros e colunas de uma tabela:
+
+```text
+select * from pessoas;
+```
+
+### Consultar colunas específicas
+
+Também é possível selecionar apenas algumas colunas:
+
+```text
+select nome from pessoas;
+```
+
+### Filtrar registros
+
+O comando `Select` pode utilizar uma condição para filtrar os registros:
+
+```text
+select nome from pessoas where idade == 25;
+```
+
 
 ## BNF
 
@@ -113,7 +161,7 @@ IO ::= “write” “(“ Expressao “)”
 ; Comandos novos
 ;-------------------------------------------------------
 
-Create ::= "create" Id "(" ListaColunas ")"
+Create ::= "create table" Id "(" ListaColunas ")"
 
 Insert ::= "insert" "into" Id
            "values" "(" ListaExpressao ")"
