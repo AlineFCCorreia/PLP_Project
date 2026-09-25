@@ -38,8 +38,12 @@ public class CreateTable implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        //SqliteManager.getInstance().criarTabela(id, colunas);
+        System.out.println("[ImpSQL] Tabela '" + id.getIdName() + "' criada com sucesso na memoria!");
+        System.out.println("[ImpSQL] CREATE TABLE " + id + " (" + colunas + ")");
+        
 
+        //SqliteManager.getInstance().criarTabela(id, colunas);
+            
         return ambiente;
     }
 
@@ -51,5 +55,10 @@ public class CreateTable implements Comando{
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return "CREATE TABLE " + id + " (" + colunas + ")";
+}
     
 }

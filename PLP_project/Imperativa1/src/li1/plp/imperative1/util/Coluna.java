@@ -22,7 +22,7 @@ public class Coluna {
         this.tipo = tipo;
     }
 
-    public String getId() {
+    public Id getId() {
         return this.id;
     }
 

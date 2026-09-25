@@ -13,6 +13,7 @@ import li1.plp.imperative1.declaration.*;
 import li1.plp.imperative1.memory.*;
 import li1.plp.imperative1.*;
 import java.util.*;
+import li1.plp.imperative1.util.Lista;
 
 public class Imp1Parser {
 
@@ -140,6 +141,13 @@ TOKEN : /* TOKENS DOS POSS�VEIS TIPOS */
 
 }
 
+TOKEN : /* TOKENS DA IMP_SQL */
+{
+  < CREATE: "create" >
+| < TABLE: "table" >
+}
+
+
 TOKEN : /* LITERALS */
 {
   < INTEGER_LITERAL:
@@ -167,6 +175,7 @@ TOKEN : /* LITERALS */
       "\""
   >
 }
+
 
 TOKEN : /* IDENTIFIERS */
 {
@@ -250,6 +259,8 @@ TOKEN : /* OPERATORS */
 | < XOR: "^" >
 | < REM: "%" >
 }
+
+
 
 
 Programa Input() :
@@ -641,6 +652,7 @@ Comando PComandoSimples() :
       | retorno = PWhile()
       | retorno = PIfThenElse()
       | retorno = PIO()
+	  | retorno = PCreate()   /*  ADICIONADO para a ImpSQÇ  */
       | <LPAREN> retorno = PComando() <RPAREN>
    	)
     {
@@ -698,4 +710,58 @@ DeclaracaoVariavel PDeclaracaoVariavel() :
 	{
 		return retorno;
 	}
+}
+
+
+
+Tipo PTipo() :
+{}
+{
+      <INT>     { return TipoPrimitivo.INTEIRO; }
+    | <BOOLEAN> { return TipoPrimitivo.BOOLEANO; }
+    | <STRING>  { return TipoPrimitivo.STRING; }
+}
+
+Coluna PColuna() :
+{
+    Id id;
+    Tipo tipo;
+}
+{
+    id = PId()
+    tipo = PTipo()
+    {
+        return new Coluna(id, tipo);
+    }
+}
+
+Lista<Coluna> PListaColunas() :
+{
+    Coluna coluna;
+    Lista<Coluna> cauda = new Lista<Coluna>();
+}
+{
+    coluna = PColuna()
+    (
+        <COMMA> cauda = PListaColunas()  // vai ficar uma lista vazia
+    )?
+    {
+        return new Lista<Coluna>(coluna, cauda);
+    }
+}
+
+CreateTable PCreate() :
+{
+    Id id;
+    Lista<Coluna> colunas;
+}
+{
+    <CREATE> <TABLE>
+    id = PId()
+    <LPAREN>
+    colunas = PListaColunas()
+    <RPAREN>
+    {
+        return new CreateTable(id, colunas);
+    }
 }
