@@ -6,6 +6,7 @@ import li1.plp.imperative1.memory.AmbienteExecucaoImperativa;
 import li1.plp.expressions2.memory.IdentificadorJaDeclaradoException;
 import li1.plp.expressions2.memory.IdentificadorNaoDeclaradoException;
 import li1.plp.imperative1.util.Lista;
+import li1.plp.imperative1.util.SqliteManager;
 
 /**
  * Representa o comando {@code create table} da linguagem ImpSQL.
@@ -38,11 +39,11 @@ public class CreateTable implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        System.out.println("[ImpSQL] Tabela '" + id.getIdName() + "' criada com sucesso na memoria!");
-        System.out.println("[ImpSQL] CREATE TABLE " + id + " (" + colunas + ")");
+        // System.out.println("[ImpSQL] Tabela '" + id.getIdName() + "' criada com sucesso na memoria!");
+        // System.out.println("[ImpSQL] CREATE TABLE " + id + " (" + colunas + ")");
         
 
-        //SqliteManager.getInstance().criarTabela(id, colunas);
+        SqliteManager.getInstance().criarTabela(id, colunas);
             
         return ambiente;
     }

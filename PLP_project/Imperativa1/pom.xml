@@ -40,6 +40,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
+        <version>3.5.0</version>
         <configuration>
           <mainClass>li1.plp.imperative1.parser.Imp1Parser</mainClass>
           <commandlineArgs>input</commandlineArgs>
@@ -72,4 +73,11 @@
       </plugin>
     </plugins>
   </build>
+    <dependencies>
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.45.1.0</version>
+    </dependency>
+  </dependencies>
 </project>
