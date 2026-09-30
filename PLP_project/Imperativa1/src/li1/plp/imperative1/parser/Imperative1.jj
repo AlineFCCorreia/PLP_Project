@@ -133,7 +133,7 @@ TOKEN : /* TOKENS DE IMPERATIVA 2 */
 | < CALL: "call" >
 }
 
-TOKEN : /* TOKENS DOS POSS�VEIS TIPOS */
+TOKEN : /* TOKENS DOS TIPOS UTILIZADOS */
 {
   < INT : "int" >
 | < BOOLEAN  : "boolean" >

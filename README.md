@@ -63,7 +63,7 @@ O comando `Create table` permite criar uma tabela informando suas colunas e resp
 create table pessoas (
     nome string,
     idade int
-);
+)
 ```
 
 ### Inserir um registro
@@ -71,7 +71,7 @@ create table pessoas (
 O comando `Insert into` permite inserir valores em uma tabela:
 
 ```text
-insert into pessoas values ("Alice", 25);
+insert into pessoas values ("Alice", 25)
 ```
 
 ### Consultar todos os dados
@@ -79,7 +79,7 @@ insert into pessoas values ("Alice", 25);
 O comando `Select` permite consultar todos os registros e colunas de uma tabela:
 
 ```text
-select * from pessoas;
+select * from pessoas
 ```
 
 ### Consultar colunas específicas
@@ -87,7 +87,7 @@ select * from pessoas;
 Também é possível selecionar apenas algumas colunas:
 
 ```text
-select nome from pessoas;
+select nome from pessoas
 ```
 
 ### Filtrar registros
@@ -95,7 +95,7 @@ select nome from pessoas;
 O comando `Select` pode utilizar uma condição para filtrar os registros:
 
 ```text
-select nome from pessoas where idade == 25;
+select nome from pessoas where idade == 25
 ```
 
 

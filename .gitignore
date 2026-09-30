@@ -11,3 +11,5 @@
 
 Gemfile.lock
 .bundle
+
+*.db
