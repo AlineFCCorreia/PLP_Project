@@ -8,7 +8,7 @@
 ## Equipe
 
 - **Aline Franciele Correia da Silva** - <afcs@cin.ufpe.br>
-- **Pedro Mesquita Breasil** - <pmb2@cin.ufpe.br>
+- **Pedro Mesquita Brasil** - <pmb2@cin.ufpe.br>
 
 Este repositório organiza o projeto da disciplina de Paradigmas de Linguagens de Programação com o código-fonte do fork organizado em `PLP_project/`.
 
