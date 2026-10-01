@@ -192,6 +192,7 @@ ListaId ::= Id
 
 ```
 
+
 ## Decisões de Projeto
 
 ### Representação das tabelas no ambiente de compilação
@@ -299,3 +300,4 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [ ] `insert into`
 - [ ] `select`
 - [ ] Tratamento de erros do banco com exceções
+
