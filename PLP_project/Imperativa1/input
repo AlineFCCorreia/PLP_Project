@@ -1,6 +1,7 @@
 
   
-  create table alunos (nome string, idade int)
+  create table alunos (nome string, idade int);
+  create table clientes (nome string, idade int, ativo boolean)
 
 
 

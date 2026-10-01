@@ -39,8 +39,8 @@ public class CreateTable implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        // System.out.println("[ImpSQL] Tabela '" + id.getIdName() + "' criada com sucesso na memoria!");
-        // System.out.println("[ImpSQL] CREATE TABLE " + id + " (" + colunas + ")");
+         //System.out.println("[ImpSQL] Tabela '" + id.getIdName() + "' criada com sucesso na memoria!");
+         //System.out.println("[ImpSQL] CREATE TABLE " + id + " (" + colunas + ")");
         
 
         SqliteManager.getInstance().criarTabela(id, colunas);
@@ -53,6 +53,10 @@ public class CreateTable implements Comando{
             AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
+
+        // Provisório: as verificações da semântica estática (tabela inexistente,
+        // colunas distintas e registro no mapa de tabelas) ainda serão implementadas.
+
 
         return true;
     }
