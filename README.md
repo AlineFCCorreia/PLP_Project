@@ -1,4 +1,4 @@
-# ImpSQL — Extensão da Linguagem Imperativa 1 para Manipulação e Consulta de Dados
+# ImpSQL — Extensão da Linguagem Imperativa 1 para Persistência e Consulta de Dados
 
 ## Universidade Federal de Pernambuco
 
@@ -14,18 +14,18 @@ Este repositório organiza o projeto da disciplina de Paradigmas de Linguagens d
 
 ## Introdução
 
-O projeto consiste na extensão da linguagem Imperativa 1 com uma pequena linguagem de comandos inspirados em SQL para manipulação de dados estruturados. A extensão foi projetada para permitir a criação de tabelas, inserção de registros e realização de consultas sobre os dados armazenados. Os dados são persistidos em um banco de dados SQLite, acessado por uma camada de persistência própria.
+O projeto consiste na extensão da linguagem Imperativa 1 com comandos inspirados em SQL para persistência e consulta de dados estruturados. A extensão permite definir as tabelas usadas por um programa, inserir registros e realizar consultas sobre os dados armazenados. Os dados são persistidos em um banco de dados SQLite, acessado por uma camada de persistência própria, e continuam existindo após o término do programa.
 
 ## Objetivos
 
 ### Objetivo Geral
 
-Estender a linguagem Imperativa 1 com comandos para criação, inserção e consulta de dados estruturados, incluindo seleção e filtragem de registros.
-
+Estender a linguagem Imperativa 1 com comandos para definição de tabelas, inserção e consulta de dados persistentes, incluindo seleção e filtragem de registros.
 
 ### Objetivos Específicos
 
-- Criar tabelas com colunas e tipos de dados definidos.
+- Definir, no início do programa, as tabelas utilizadas, criando-as caso ainda não existam.
+- Verificar, antes da execução, se as tabelas definidas são compatíveis com as já existentes no banco.
 - Inserir registros nas tabelas.
 - Consultar dados armazenados nas tabelas.
 - Selecionar colunas específicas nas consultas.
@@ -40,34 +40,34 @@ Estender a linguagem Imperativa 1 com comandos para criação, inserção e cons
 
 ## Resumo do Projeto
 
-A extensão adiciona três novos tipos de comandos à linguagem Imperativa 1:
+A extensão adiciona três comandos à linguagem Imperativa 1:
 
-- `create table` —  criação da estrutura de uma tabela.
+- `create-use` — definição de uma tabela no início do programa: cria a tabela se ela não existir, ou usa a existente se o esquema for compatível.
 - `insert into` — inserção de um registro na tabela.
 - `select [... where Expressao]` — consulta de dados, com filtragem opcional.
 
-
 ## Exemplos de Uso
 
-A seguir são apresentados exemplos simples dos novos comandos adicionados à linguagem.
+A seguir são apresentados exemplos simples dos novos comandos da linguagem.
 
-### Criar uma tabela
-O comando `create table` permite criar uma tabela informando suas colunas e respectivos tipos:
+### Definir tabelas
+
+Todas as tabelas usadas pelo programa são definidas no início, com suas colunas e respectivos tipos. Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos:
 
 ```text
-create table clientes (
-    nome string,
-    idade int,
-    ativo boolean
-)
+create-use clientes (nome string, idade int, ativo boolean);
+create-use pedidos (produto string, cliente string);
+...
 ```
 
+Se a tabela não existir no banco, ela é criada. Se já existir com o mesmo esquema, ela é usada como está. Assim, o mesmo programa pode ser executado várias vezes.
 
 ### Inserir um registro
 
 O comando `insert into` permite inserir valores, literais ou expressões, em uma tabela:
 
 ```text
+create-use clientes (nome string, idade int, ativo boolean);
 { var n = "Bob", var i = 30;
   insert into clientes values ("Alice", 25, true);
   insert into clientes values (n, i + 1, false)
@@ -79,6 +79,7 @@ O comando `insert into` permite inserir valores, literais ou expressões, em uma
 O comando `select` permite consultar todos os registros e colunas de uma tabela:
 
 ```text
+create-use clientes (nome string, idade int, ativo boolean);
 select * from clientes
 ```
 
@@ -87,6 +88,7 @@ select * from clientes
 Também é possível selecionar apenas algumas colunas:
 
 ```text
+create-use clientes (nome string, idade int, ativo boolean);
 select nome from clientes
 ```
 
@@ -95,78 +97,88 @@ select nome from clientes
 O comando `select` pode utilizar uma condição para filtrar os registros:
 
 ```text
+create-use clientes (nome string, idade int, ativo boolean);
 select nome from clientes where idade == 25
 ```
-
 
 ## BNF
 
 ```
 Programa ::= Comando
 
-Comando ::= Atribuicao
-       | ComandoDeclaracao
-       | While
-       | IfThenElse
-       | IO
-       | Comando “;” Comando
-       | Skip
-       | Create     [NOVO]
-       | Insert     [NOVO]
-       | Select     [NOVO]
+Comando ::= ListaCreateUse ";" ComandoBase                  [NOVO]
+          | ComandoBase                                      [NOVO]
+
+ComandoBase ::= Atribuicao                                   [NOVO]
+              | ComandoDeclaracao
+              | While
+              | IfThenElse
+              | IO
+              | ComandoBase ";" ComandoBase
+              | Skip
+              | Insert                                       [NOVO]
+              | Select                                       [NOVO]
 
 Skip ::=
 
-Atribuicao ::= Id “:=” Expressao
+Atribuicao ::= Id ":=" Expressao
 
 Expressao ::= Valor
-       | ExpUnaria
-       | ExpBinaria
-       | Id
+            | ExpUnaria
+            | ExpBinaria
+            | Id
 
 Valor ::= ValorConcreto
 
 ValorConcreto ::= ValorInteiro
-       | ValorBooleano
-       | ValorString
+                | ValorBooleano
+                | ValorString
 
-ExpUnaria ::= “-“ Expressao
-       | “not” Expressao
-       | “length” Expressao
+ExpUnaria ::= "-" Expressao
+            | "not" Expressao
+            | "length" Expressao
 
-ExpBinaria ::= Expressao “+” Expressao
-       | Expressao “-“ Expressao
-       | Expressao “and” Expressao
-       | Expressao “or” Expressao
-       | Expressao “==” Expressao
-       | Expressao “++” Expressao
+ExpBinaria ::= Expressao "+" Expressao
+             | Expressao "-" Expressao
+             | Expressao "and" Expressao
+             | Expressao "or" Expressao
+             | Expressao "==" Expressao
+             | Expressao "++" Expressao
 
-ComandoDeclaracao ::= “{“ Declaracao “;” Comando “}”
+ComandoDeclaracao ::= "{" Declaracao ";" ComandoBase "}"     [ALTERADO]
 
 Declaracao ::= DeclaracaoVariavel
-       | DeclaracaoComposta
+             | DeclaracaoComposta
 
-DeclaracaoVariavel ::= “var” Id “=” Expressao
+DeclaracaoVariavel ::= "var" Id "=" Expressao
 
-DeclaracaoComposta ::= Declaracao “,” Declaracao
+DeclaracaoComposta ::= Declaracao "," Declaracao
 
-While ::= “while” Expressao “do” Comando
+While ::= "while" Expressao "do" ComandoBase                 [ALTERADO]
 
-IfThenElse ::= “if” Expressao “then” Comando “else” Comando
+IfThenElse ::= "if" Expressao "then" ComandoBase             [ALTERADO]
+               "else" ComandoBase
 
-IO ::= “write” “(“ Expressao “)”
-       | “read” “(“ Id “)”
+IO ::= "write" "(" Expressao ")"
+     | "read" "(" Id ")"
 
 ;-------------------------------------------------------
-; Comandos novos
+; Definição de tabelas (somente no início do programa)
 ;-------------------------------------------------------
 
-Create ::= "create table" Id "(" ListaColunas ")"
+ListaCreateUse ::= CreateUse                                 [NOVO]
+                 | CreateUse ";" ListaCreateUse
 
-Insert ::= "insert" "into" Id
+CreateUse ::= "create-use" Id "(" ListaColunas ")"           [NOVO]
+
+;-------------------------------------------------------
+; Comandos de manipulação de dados
+;-------------------------------------------------------
+
+Insert ::= "insert" "into" Id                                [NOVO]
            "values" "(" ListaExpressao ")"
 
-Select ::= "select" "*" "from" Id
+Select ::= "select" "*" "from" Id                            [NOVO]
          | "select" "*" "from" Id "where" Expressao
          | "select" ListaId "from" Id
          | "select" ListaId "from" Id "where" Expressao
@@ -176,7 +188,7 @@ Select ::= "select" "*" "from" Id
 ;-------------------------------------------------------
 
 ListaColunas ::= Coluna
-        | Coluna "," ListaColunas
+               | Coluna "," ListaColunas
 
 Coluna ::= Id Tipo
 
@@ -185,26 +197,46 @@ Tipo ::= "int"
        | "string"
 
 ListaExpressao ::= Expressao
-                  | Expressao "," ListaExpressao
+                 | Expressao "," ListaExpressao
 
 ListaId ::= Id
           | Id "," ListaId
-
 ```
-
 
 ## Decisões de Projeto
 
+### Definição das tabelas no início do programa
+
+As tabelas têm escopo global: elas existem no banco independentemente dos blocos do programa e sobrevivem ao seu término. Para que isso fique claro na própria sintaxe, as tabelas só podem ser definidas no início do programa, por meio de uma lista de `create-use`, antes de qualquer outro comando.
+
+A gramática separa dois níveis: `Comando`, que contém a lista opcional de `create-use` seguida de um `ComandoBase`, e `ComandoBase`, que contém os comandos da Imperativa 1 mais o `insert` e o `select`. As produções `While`, `IfThenElse` e `ComandoDeclaracao` usam `ComandoBase`, de modo que um `create-use` não pode aparecer dentro de blocos ou laços. Assim, a definição de uma tabela nunca aparenta ter escopo local.
+
+O `create-use` é um comando de definição de tabela. Na verificação de tipos, ele registra o esquema da tabela no mapa de tabelas. Na execução, ele cria a tabela no banco, caso ela ainda não exista. Como seu efeito é persistente e global, ele é o único comando que só pode aparecer no início do programa.
+
+Além disso, o programa precisa definir todas as tabelas que utiliza, inclusive as que já existem no banco. Com isso, as tabelas usadas são conhecidas desde o início, sem a necessidade de percorrer o restante do programa.
+
+Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos da Imperativa 1:
+
+```text
+create-use clientes (nome string, idade int);
+create-use pedidos (produto string, cliente string);
+insert into clientes values ("Alice", 25)
+```
+
+### Semântica do `create-use`
+
+O `create-use` significa "criar a tabela se ela não existir, ou usar a existente". Por isso, o mesmo programa pode ser executado várias vezes sem erro, e tabelas criadas por outros programas podem ser usadas, desde que sejam definidas no início do programa.
+
+Para evitar que o programa acredite em um esquema diferente do real, o esquema definido é comparado com o esquema da tabela no banco, quando ela já existe. Se forem diferentes, há erro de tipo, antes da execução.
+
 ### Representação das tabelas no ambiente de compilação
 
-O esquema de cada tabela (nome, colunas e tipos) é registrado em um **mapa de tabelas** no contexto de compilação, separado do mapeamento de variáveis. É esse mapa que permite ao `insert` e ao `select` verificar tipos estaticamente.
+O esquema de cada tabela definida (nome, colunas e tipos) é registrado em um **mapa de tabelas**, atributo do contexto de compilação, mantido fora da pilha de escopos das variáveis. É esse mapa que permite ao `insert` e ao `select` verificar tipos estaticamente.
 
-- **Espaço de nomes separado:** tabelas e variáveis não compartilham nomes. `var clientes = 1` e `create table clientes (...)` podem coexistir.
-- **Escopo global:** o mapa de tabelas não faz parte da pilha de escopos das variáveis. Uma tabela declarada com `create table` é visível do ponto da declaração até o fim do programa, independentemente dos blocos `{ ... }`. Isso mantém o ambiente de compilação coerente com o banco, onde a tabela continua existindo após o fim do bloco.
+- **Espaço de nomes separado:** tabelas e variáveis não compartilham nomes. `var clientes = 1` e `create-use clientes (...)` podem coexistir.
+- **Escopo global:** como o mapa não faz parte da pilha, ele não é afetado pela entrada e saída de blocos.
 
-### Persistência entre execuções
-
-No início de cada execução, antes da verificação de tipos, o esquema das tabelas já existentes no SQLite é carregado no mapa de tabelas. Assim, o ambiente de compilação reflete o que está persistido, e um programa pode consultar tabelas criadas em execuções anteriores. Como consequência, executar novamente um `create table` de uma tabela já existente é erro de tipo.
+O mapa é usado apenas na verificação de tipos. Durante a execução, os comandos acessam diretamente o banco.
 
 ### Mapeamento de tipos para o SQLite
 
@@ -214,11 +246,9 @@ No início de cada execução, antes da verificação de tipos, o esquema das ta
 | `string`  | `TEXT`    | texto            |
 | `boolean` | `BOOLEAN` | `0` ou `1`       |
 
-O SQLite não possui uma classe de armazenamento específica para valores booleanos. Entretanto permite declarar uma coluna como `BOOLEAN`, mantendo esse tipo declarado no esquema da tabela. Os valores booleanos são armazenados como inteiros, com `false` representado por `0` e `true` por `1`. Isso permite recuperar o tipo `boolean` ao carregar o esquema das tabelas persistidas.
+O SQLite não possui uma classe de armazenamento específica para valores booleanos. Entretanto, permite declarar uma coluna como `BOOLEAN`, mantendo esse tipo declarado no esquema da tabela. Os valores booleanos são armazenados como inteiros, com `false` representado por `0` e `true` por `1`. Isso permite recuperar o tipo `boolean` ao ler o esquema de uma tabela existente, necessário para compará-lo com o esquema definido no `create-use`.
 
-A conversão entre `ValorBooleano` e `0`/`1` é realizada na camada de
-persistência, enquanto a linguagem continua tratando esses valores como
-booleanos.
+A conversão entre `ValorBooleano` e `0`/`1` é realizada na camada de persistência, enquanto a linguagem continua tratando esses valores como booleanos.
 
 ### Avaliação do `where`
 
@@ -232,13 +262,30 @@ A linguagem não possui `null`: todo registro tem um valor para cada coluna.
 
 Os erros de esquema são detectados na verificação de tipos, antes da execução.
 
-### `create table T (c1 t1, ..., cn tn)`
+### Programa com `create-use`
+
+Um programa com `create-use` tem duas partes: a lista de `create-use` e o `ComandoBase` que vem em seguida. O `ComandoBase` pode conter qualquer comando da linguagem, inclusive blocos com declarações de variáveis, mas não `create-use`.
+
+```text
+create-use T1 (...); ...; create-use Tk (...);   ← lista de create-use
+C                                                ← ComandoBase
+```
+
+A verificação de tipos é feita em duas etapas:
+
+1. Cada `create-use` é verificado, na ordem em que aparece. Cada um que for bem tipado registra sua tabela no mapa de tabelas.
+2. O `ComandoBase` `C` é verificado usando o mapa já preenchido. Assim, os `insert` e `select` só podem usar tabelas definidas na lista.
+
+O programa é bem tipado se todos os `create-use` e o `ComandoBase` forem bem tipados.
+
+### `create-use T (c1 t1, ..., cn tn)`
 
 É bem tipado se:
 
-1. A tabela `T` não existe no mapa de tabelas.
+1. A tabela `T` não foi definida anteriormente na mesma lista.
 2. Os nomes `c1, ..., cn` são distintos entre si.
 3. Os tipos `t1, ..., tn` são válidos, o que já é garantido pela gramática.
+4. Se `T` já existe no banco, seu esquema é igual a `(c1 t1, ..., cn tn)`: mesmas colunas, na mesma ordem, com os mesmos tipos.
 
 Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 
@@ -246,7 +293,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 
 É bem tipado se:
 
-1. A tabela `T` existe no mapa de tabelas.
+1. A tabela `T` existe no mapa de tabelas, ou seja, foi definida por um `create-use` no início do programa.
 2. O número de expressões é igual ao número de colunas de `T` (se `T` tem `n` colunas, `m = n`).
 3. Cada `ei` é bem tipada, e seu tipo é igual ao da i-ésima coluna (correspondência posicional).
 
@@ -254,15 +301,20 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 
 É bem tipado se:
 
-1. A tabela `T` existe no mapa de tabelas.
+1. A tabela `T` existe no mapa de tabelas, ou seja, foi definida por um `create-use` no início do programa.
 2. Se `L` é uma lista de identificadores, cada um é uma coluna de `T`. Se `L` é `*`, todas as colunas são selecionadas.
 3. Se houver `where e`: em um escopo temporário em que cada coluna de `T` é mapeada para seu tipo, `e` é bem tipada e tem tipo `boolean`. Nesse escopo, uma coluna esconde uma variável de mesmo nome (sombreamento). O escopo é descartado ao fim da verificação.
 
 ## Semântica Dinâmica (`executar`)
 
-### `create table`
+### Programa com `create-use`
 
-Cria a tabela no SQLite com as colunas e os tipos declarados, conforme o mapeamento de tipos.
+1. Cada `create-use` é executado, na ordem em que aparece.
+2. Em seguida, o `ComandoBase` `C` é executado.
+
+### `create-use`
+
+Cria a tabela no SQLite com as colunas e os tipos definidos, conforme o mapeamento de tipos, caso ela ainda não exista. Se já existir, nada é feito, e a tabela existente é usada. A compatibilidade do esquema já foi garantida pela verificação de tipos.
 
 ### `insert into`
 
@@ -274,7 +326,7 @@ Avalia as expressões `e1, ..., em` no ambiente de execução atual e grava um n
 2. Se houver `where e`, avalia `e` para cada registro, em um escopo temporário em que cada coluna está associada ao seu valor, e mantém os registros em que o resultado é `true`.
 3. Escreve na saída cada valor selecionado, como um valor da linguagem, da mesma forma que o comando `write`: na ordem dos registros e, dentro de cada registro, na ordem das colunas pedidas. Se nenhum registro for selecionado, nada é escrito.
 
-   Exemplo: após os `insert` da seção de exemplos, o comando `select * from clientes` produz a saída `"Alice" 25 true "Bob" 31 false`, e `select nome from clientes where idade == 25` produz `"Alice"`.
+   Exemplo: executando uma vez o programa da seção de exemplos de inserção, com a tabela inicialmente vazia, o comando `select * from clientes` produz a saída `"Alice" 25 true "Bob" 31 false`, e `select nome from clientes where idade == 25` produz `"Alice"`.
 
 O `select` não produz um valor utilizável pelo programa: o resultado vai apenas para a saída, pois ainda não há um tipo capaz de representar uma coleção de registros.
 
@@ -294,10 +346,10 @@ Falhas do banco (arquivo inacessível, erro de SQL) interrompem a execução com
 
 As seções de especificação acima descrevem a linguagem ImpSQL como definida pela equipe. A implementação está em andamento:
 
-- [x] `create table`: gramática, parser e criação da tabela no SQLite
-- [ ] `create table`: verificação de tipos e registro no mapa de tabelas
-- [ ] Carregamento do esquema das tabelas persistidas
+- [x] Criação de tabela no SQLite (`CREATE TABLE IF NOT EXISTS`)
+- [ ] Gramática e parser do `create-use` no início do programa (`Comando` e `ComandoBase`)
+- [ ] Mapa de tabelas no ambiente de compilação
+- [ ] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
 - [ ] `insert into`
 - [ ] `select`
 - [ ] Tratamento de erros do banco com exceções
-
