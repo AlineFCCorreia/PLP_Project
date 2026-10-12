@@ -52,12 +52,11 @@ A seguir são apresentados exemplos simples dos novos comandos da linguagem.
 
 ### Definir tabelas
 
-Todas as tabelas usadas pelo programa são definidas no início, com suas colunas e respectivos tipos. Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos:
+Todas as tabelas usadas pelo programa são definidas no início, com suas colunas e respectivos tipos. Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos. Um programa pode conter apenas definições de tabelas, por exemplo para preparar tabelas que serão usadas por outros programas:
 
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
-create-use pedidos (produto string, cliente string);
-...
+create-use pedidos (produto string, cliente string)
 ```
 
 Se a tabela não existir no banco, ela é criada. Se já existir com o mesmo esquema, ela é usada como está. Assim, o mesmo programa pode ser executado várias vezes.
@@ -106,7 +105,8 @@ select nome from clientes where idade == 25
 ```
 Programa ::= Comando
 
-Comando ::= ListaCreateUse ";" ComandoBase                  [NOVO]
+Comando ::= ListaCreateUse                                   [NOVO]
+          | ListaCreateUse ";" ComandoBase                   [NOVO]
           | ComandoBase                                      [NOVO]
 
 ComandoBase ::= Atribuicao                                   [NOVO]
@@ -209,19 +209,21 @@ ListaId ::= Id
 
 As tabelas têm escopo global: elas existem no banco independentemente dos blocos do programa e sobrevivem ao seu término. Para que isso fique claro na própria sintaxe, as tabelas só podem ser definidas no início do programa, por meio de uma lista de `create-use`, antes de qualquer outro comando.
 
-A gramática separa dois níveis: `Comando`, que contém a lista opcional de `create-use` seguida de um `ComandoBase`, e `ComandoBase`, que contém os comandos da Imperativa 1 mais o `insert` e o `select`. As produções `While`, `IfThenElse` e `ComandoDeclaracao` usam `ComandoBase`, de modo que um `create-use` não pode aparecer dentro de blocos ou laços. Assim, a definição de uma tabela nunca aparenta ter escopo local.
+A gramática separa dois níveis: `Comando`, que contém uma lista de `create-use`, um `ComandoBase`, ou uma lista de `create-use` seguida de um `ComandoBase`; e `ComandoBase`, que contém os comandos da Imperativa 1 mais o `insert` e o `select`. As produções `While`, `IfThenElse` e `ComandoDeclaracao` usam `ComandoBase`, de modo que um `create-use` não pode aparecer dentro de blocos ou laços. Assim, a definição de uma tabela nunca aparenta ter escopo local.
 
 O `create-use` é um comando de definição de tabela. Na verificação de tipos, ele registra o esquema da tabela no mapa de tabelas. Na execução, ele cria a tabela no banco, caso ela ainda não exista. Como seu efeito é persistente e global, ele é o único comando que só pode aparecer no início do programa.
 
 Além disso, o programa precisa definir todas as tabelas que utiliza, inclusive as que já existem no banco. Com isso, as tabelas usadas são conhecidas desde o início, sem a necessidade de percorrer o restante do programa.
 
-Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos da Imperativa 1:
+Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos da Imperativa 1. O `;` também separa o último `create-use` do `ComandoBase`, quando ele existe:
 
 ```text
 create-use clientes (nome string, idade int);
 create-use pedidos (produto string, cliente string);
 insert into clientes values ("Alice", 25)
 ```
+
+Um programa pode conter apenas a lista de `create-use`, por exemplo para preparar tabelas que serão usadas por outros programas. Nesse caso, não há `;` depois do último `create-use`.
 
 ### Semântica do `create-use`
 
@@ -264,19 +266,19 @@ Os erros de esquema são detectados na verificação de tipos, antes da execuç�
 
 ### Programa com `create-use`
 
-Um programa com `create-use` tem duas partes: a lista de `create-use` e o `ComandoBase` que vem em seguida. O `ComandoBase` pode conter qualquer comando da linguagem, inclusive blocos com declarações de variáveis, mas não `create-use`.
+Um programa com `create-use` tem duas partes: a lista de `create-use` e, opcionalmente, o `ComandoBase` que vem em seguida. O `ComandoBase` pode conter qualquer comando da linguagem, inclusive blocos com declarações de variáveis, mas não `create-use`.
 
 ```text
-create-use T1 (...); ...; create-use Tk (...);   ← lista de create-use
-C                                                ← ComandoBase
+create-use T1 (...); ...; create-use Tk (...)    ← lista de create-use
+; C                                              ← ComandoBase (opcional)
 ```
 
 A verificação de tipos é feita em duas etapas:
 
 1. Cada `create-use` é verificado, na ordem em que aparece. Cada um que for bem tipado registra sua tabela no mapa de tabelas.
-2. O `ComandoBase` `C` é verificado usando o mapa já preenchido. Assim, os `insert` e `select` só podem usar tabelas definidas na lista.
+2. Se houver um `ComandoBase` `C`, ele é verificado usando o mapa já preenchido. Assim, os `insert` e `select` só podem usar tabelas definidas na lista.
 
-O programa é bem tipado se todos os `create-use` e o `ComandoBase` forem bem tipados.
+O programa é bem tipado se todos os `create-use` e, quando existir, o `ComandoBase` forem bem tipados.
 
 ### `create-use T (c1 t1, ..., cn tn)`
 
@@ -310,7 +312,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 ### Programa com `create-use`
 
 1. Cada `create-use` é executado, na ordem em que aparece.
-2. Em seguida, o `ComandoBase` `C` é executado.
+2. Em seguida, se houver um `ComandoBase` `C`, ele é executado.
 
 ### `create-use`
 
