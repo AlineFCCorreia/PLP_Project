@@ -7,6 +7,7 @@ import li1.plp.expressions2.memory.IdentificadorJaDeclaradoException;
 import li1.plp.expressions2.memory.IdentificadorNaoDeclaradoException;
 import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.SqliteManager;
+import java.util.HashSet;
 
 /**
  * Representa o comando {@code create-use} da linguagem ImpSQL.
@@ -50,6 +51,22 @@ public class CreateUse implements Comando{
             
         return ambiente;
     }
+        /**
+     * Verifica se os nomes das colunas são distintos entre si.
+     */
+    private boolean colunasDistintas() {
+        HashSet<Id> nomes = new HashSet<Id>();
+
+        Lista<Coluna> aux = colunas;
+        while (aux != null && aux.getHead() != null) {
+            Id nome = aux.getHead().getId();
+            if (!nomes.add(nome)) {
+                return false;       // nome repetido
+            }
+            aux = aux.getTail();
+        }
+        return true;
+    }
 
     @Override
     public boolean checaTipo(
@@ -57,11 +74,22 @@ public class CreateUse implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        // Provisório: as verificações da semântica estática (tabela não repetida
-        // na lista, colunas distintas, comparação com o esquema do banco e
-        // registro no mapa de tabelas) ainda serão implementadas.
+       
 
 
+        // Regra 1: a tabela não pode ter sido definida antes na mesma lista.
+        if (ambiente.existeTabela(id)) {
+            return false;
+        }
+
+        // Regra 2: os nomes das colunas devem ser distintos.
+        if (!colunasDistintas()) {
+            return false;
+        }
+
+        // Ainda falta: comparação com o esquema do banco.
+
+        ambiente.mapTabela(id, colunas);
         return true;
     }
 

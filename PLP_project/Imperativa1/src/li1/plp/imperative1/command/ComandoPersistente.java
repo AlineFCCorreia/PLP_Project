@@ -54,15 +54,15 @@ public class ComandoPersistente implements Comando {
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException, EntradaVaziaException {
 
-        // Lista<CreateUse> aux = createUses;
-        // while (aux != null && aux.getHead() != null) {
-        //     if (!aux.getHead().checaTipo(ambiente)) {
-        //         return false;
-        //     }
-        //     aux = aux.getTail();
-        // }
-        // return comandoBase.checaTipo(ambiente);
-        return true;
+        Lista<CreateUse> aux = createUses;
+        while (aux != null && aux.getHead() != null) {
+            if (!aux.getHead().checaTipo(ambiente)) {
+                return false;
+            }
+            aux = aux.getTail();
+        }
+        return comandoBase.checaTipo(ambiente);
+        // return true;
     }
 
     @Override
