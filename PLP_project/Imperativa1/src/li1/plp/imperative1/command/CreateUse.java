@@ -9,18 +9,21 @@ import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.SqliteManager;
 
 /**
- * Representa o comando {@code create table} da linguagem ImpSQL.
+ * Representa o comando {@code create-use} da linguagem ImpSQL.
  *
- * O {@code id} representa o nome da tabela que será criada.
+ * Cria a tabela no banco caso ela ainda não exista; se já existir,
+ * a tabela existente é usada.
+ *
+ * O {@code id} representa o nome da tabela.
  * A {@code colunas} representa a lista de objetos da classe {@link Coluna},
  * sendo cada objeto responsável por representar o nome e o tipo de uma coluna.
  */
-public class CreateTable implements Comando{
+public class CreateUse implements Comando{
 
     private Id id;
     private Lista<Coluna> colunas;
 
-    public CreateTable(Id id, Lista<Coluna> colunas) {
+    public CreateUse(Id id, Lista<Coluna> colunas) {
         this.id = id;
         this.colunas = colunas;
     }
@@ -54,8 +57,9 @@ public class CreateTable implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        // Provisório: as verificações da semântica estática (tabela inexistente,
-        // colunas distintas e registro no mapa de tabelas) ainda serão implementadas.
+        // Provisório: as verificações da semântica estática (tabela não repetida
+        // na lista, colunas distintas, comparação com o esquema do banco e
+        // registro no mapa de tabelas) ainda serão implementadas.
 
 
         return true;
@@ -63,7 +67,7 @@ public class CreateTable implements Comando{
 
     @Override
     public String toString() {
-        return "CREATE TABLE " + id + " (" + colunas + ")";
-}
+        return "CREATE-USE " + id + " (" + colunas + ")";
+    }
     
 }

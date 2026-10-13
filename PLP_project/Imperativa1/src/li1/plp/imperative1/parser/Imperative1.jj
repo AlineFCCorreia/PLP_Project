@@ -143,8 +143,7 @@ TOKEN : /* TOKENS DOS TIPOS UTILIZADOS */
 
 TOKEN : /* TOKENS DA IMP_SQL */
 {
-  < CREATE: "create" >
-| < TABLE: "table" >
+  < CREATE_USE: "create-use" >
 }
 
 
@@ -285,7 +284,32 @@ Programa PPrograma() :
 	}
 }
 
+
 Comando PComando() :
+{
+    Lista<CreateUse> createUses = null;
+    Comando comandoBase = null;
+}
+{
+    (
+        createUses = PListaCreateUse()
+        ( <SEMICOLON> comandoBase = PComandoBase() )?
+      |
+        comandoBase = PComandoBase()
+    )
+    {
+        if (createUses == null) {
+            return comandoBase;
+        }
+        if (comandoBase == null) {
+            comandoBase = new Skip();
+        }
+        return new ComandoPersistente(createUses, comandoBase);
+    }
+}
+
+
+Comando PComandoBase() :
 {
 	Comando retorno;
 }
@@ -308,7 +332,7 @@ SequenciaComando PSequenciaComando() :
 {
 	c1 = PComandoSimples()
 	<SEMICOLON>
-	c2 = PComando()
+	c2 = PComandoBase()
 	{return new SequenciaComando(c1, c2);}
 }
 
@@ -356,9 +380,9 @@ IfThenElse PIfThenElse() :
 	<IF>
 		expressao = PExpressao()
 	<THEN>
-		comandoThen = PComando()
+		comandoThen = PComandoBase()
 	<ELSE>
-		comandoElse = PComando()
+		comandoElse = PComandoBase()
 	{return new IfThenElse (expressao, comandoThen, comandoElse);}
 }
 
@@ -371,7 +395,7 @@ While PWhile() :
 	<WHILE>
 		expressao = PExpressao()
 	<DO>
-		comando = PComando()
+		comando = PComandoBase()
 	{return new While(expressao, comando);}
 }
 
@@ -652,8 +676,7 @@ Comando PComandoSimples() :
       | retorno = PWhile()
       | retorno = PIfThenElse()
       | retorno = PIO()
-	  | retorno = PCreate()   /*  ADICIONADO para a ImpSQÇ  */
-      | <LPAREN> retorno = PComando() <RPAREN>
+      | <LPAREN> retorno = PComandoBase() <RPAREN>
    	)
     {
         return retorno;
@@ -667,7 +690,7 @@ ComandoDeclaracao PComandoDeclaracao() :
 }
 {
 	<LBRACE> 
-		dec = PDeclaracao() <SEMICOLON> comando = PComando() 
+		dec = PDeclaracao() <SEMICOLON> comando = PComandoBase() 
 	<RBRACE>
  	{
  		return new ComandoDeclaracao(dec, comando);
@@ -750,18 +773,31 @@ Lista<Coluna> PListaColunas() :
     }
 }
 
-CreateTable PCreate() :
+CreateUse PCreateUse() :
 {
     Id id;
     Lista<Coluna> colunas;
 }
 {
-    <CREATE> <TABLE>
+    <CREATE_USE>
     id = PId()
     <LPAREN>
     colunas = PListaColunas()
     <RPAREN>
     {
-        return new CreateTable(id, colunas);
+        return new CreateUse(id, colunas);
+    }
+}
+
+Lista<CreateUse> PListaCreateUse() :
+{
+    CreateUse createUse;
+    Lista<CreateUse> cauda = new Lista<CreateUse>();
+}
+{
+    createUse = PCreateUse()
+    ( LOOKAHEAD(2) <SEMICOLON> cauda = PListaCreateUse() )?
+    {
+        return new Lista<CreateUse>(createUse, cauda);
     }
 }
