@@ -71,9 +71,9 @@ public class CreateUse implements Comando{
      * Verifica se o esquema declarado é igual ao esquema da tabela no banco:
      * mesmas colunas, na mesma ordem, com os mesmos tipos.
      */
-    private boolean mesmoEsquema(Lista<Coluna> esquemaBanco) {
+    private boolean mesmoEsquema(Lista<Coluna> outroEsquema) {
         Lista<Coluna> declarada = colunas;
-        Lista<Coluna> banco = esquemaBanco;
+        Lista<Coluna> banco = outroEsquema;
 
         while (declarada != null && declarada.getHead() != null
                 && banco != null && banco.getHead() != null) {
@@ -107,8 +107,10 @@ public class CreateUse implements Comando{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        // Regra 1: a tabela não pode ter sido definida antes na mesma lista.
-        if (ambiente.existeTabela(id)) {
+        // Regra 1: se a tabela já foi definida antes na mesma lista,
+        // o esquema precisa ser igual ao da definição anterior.
+        Lista<Coluna> definicaoAnterior = ambiente.getTabela(id);
+        if (definicaoAnterior != null && !mesmoEsquema(definicaoAnterior)) {
             return false;
         }
 

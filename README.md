@@ -284,7 +284,7 @@ O programa é bem tipado se todos os `create-use` e, quando existir, o `ComandoB
 
 É bem tipado se:
 
-1. A tabela `T` não foi definida anteriormente na mesma lista.
+1. Se a tabela `T` já foi definida anteriormente na mesma lista, o esquema `(c1 t1, ..., cn tn)` é igual ao da definição anterior.
 2. Os nomes `c1, ..., cn` são distintos entre si.
 3. Os tipos `t1, ..., tn` são válidos, o que já é garantido pela gramática.
 4. Se `T` já existe no banco, seu esquema é igual a `(c1 t1, ..., cn tn)`: mesmas colunas, na mesma ordem, com os mesmos tipos.
@@ -349,9 +349,9 @@ Falhas do banco (arquivo inacessível, erro de SQL) interrompem a execução com
 As seções de especificação acima descrevem a linguagem ImpSQL como definida pela equipe. A implementação está em andamento:
 
 - [x] Criação de tabela no SQLite (`CREATE TABLE IF NOT EXISTS`)
-- [ ] Gramática e parser do `create-use` no início do programa (`Comando` e `ComandoBase`)
-- [ ] Mapa de tabelas no ambiente de compilação
-- [ ] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
+- [x] Gramática e parser do `create-use` no início do programa (`Comando` e `ComandoBase`)
+- [x] Mapa de tabelas no ambiente de compilação
+- [x] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
 - [ ] `insert into`
 - [ ] `select`
 - [ ] Tratamento de erros do banco com exceções
