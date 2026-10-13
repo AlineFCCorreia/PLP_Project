@@ -67,15 +67,45 @@ public class CreateUse implements Comando{
         }
         return true;
     }
+        /**
+     * Verifica se o esquema declarado é igual ao esquema da tabela no banco:
+     * mesmas colunas, na mesma ordem, com os mesmos tipos.
+     */
+    private boolean mesmoEsquema(Lista<Coluna> esquemaBanco) {
+        Lista<Coluna> declarada = colunas;
+        Lista<Coluna> banco = esquemaBanco;
+
+        while (declarada != null && declarada.getHead() != null
+                && banco != null && banco.getHead() != null) {
+
+            Coluna colunaDeclarada = declarada.getHead();
+            Coluna colunaBanco = banco.getHead();
+
+            if (!colunaDeclarada.getId().equals(colunaBanco.getId())) {
+                return false;       // nome diferente nessa posição
+            }
+
+            // Um tipo null vem de uma coluna com tipo que a ImpSQL não conhece.
+            if (colunaBanco.getTipo() == null
+                    || !colunaDeclarada.getTipo().eIgual(colunaBanco.getTipo())) {
+                return false;       // tipo diferente nessa posição
+            }
+
+            declarada = declarada.getTail();
+            banco = banco.getTail();
+        }
+
+        // As duas listas precisam terminar juntas: mesmo número de colunas.
+        boolean fimDeclarada = declarada == null || declarada.getHead() == null;
+        boolean fimBanco = banco == null || banco.getHead() == null;
+        return fimDeclarada && fimBanco;
+    }
 
     @Override
     public boolean checaTipo(
             AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
-
-       
-
 
         // Regra 1: a tabela não pode ter sido definida antes na mesma lista.
         if (ambiente.existeTabela(id)) {
@@ -87,7 +117,14 @@ public class CreateUse implements Comando{
             return false;
         }
 
-        // Ainda falta: comparação com o esquema do banco.
+        // Regra 3 (tipos válidos) é garantida pela gramática: PTipo só aceita
+        // int, boolean e string.
+
+        // Regra 4: se a tabela já existe no banco, o esquema precisa ser o mesmo.
+        Lista<Coluna> esquemaBanco = SqliteManager.getInstance().lerEsquema(id);
+        if (esquemaBanco != null && !mesmoEsquema(esquemaBanco)) {
+            return false;
+        }
 
         ambiente.mapTabela(id, colunas);
         return true;

@@ -7,6 +7,13 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import li1.plp.expressions1.util.Tipo;
+
 /**
  * Gerencia conexões e operações no banco SQLite.
  */
@@ -65,5 +72,43 @@ public class SqliteManager {
                 "Erro ao criar tabela no SQLite: " + e.getMessage()
             );
         }
+    }
+
+    /**
+     * Lê do banco o esquema de uma tabela existente.
+     *
+     * @return as colunas da tabela, na ordem em que foram declaradas,
+     *         ou null se a tabela não existir no banco.
+     */
+    public Lista<Coluna> lerEsquema(Id id) {
+
+        String sql = "PRAGMA table_info(" + id.getIdName() + ");";
+        List<Coluna> colunasLidas = new ArrayList<Coluna>();
+
+        try (Connection conn = DriverManager.getConnection(URL_BANCO);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Id nome = new Id(rs.getString("name"));
+                Tipo tipo = SqliteHelper.converterParaTipoImpSQL(rs.getString("type"));
+                colunasLidas.add(new Coluna(nome, tipo));
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                "Erro ao ler o esquema da tabela '" + id.getIdName() + "': " + e.getMessage(), e);
+        }
+
+        if (colunasLidas.isEmpty()) {
+            return null;    // a tabela não existe no banco
+        }
+
+        // Monta a Lista da ImpSQL de trás para frente, para manter a ordem das colunas.
+        Lista<Coluna> esquema = new Lista<Coluna>();
+        for (int i = colunasLidas.size() - 1; i >= 0; i--) {
+            esquema = new Lista<Coluna>(colunasLidas.get(i), esquema);
+        }
+        return esquema;
     }
 }
