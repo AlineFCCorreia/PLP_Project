@@ -275,41 +275,24 @@ Programa Input() :
 
 Programa PPrograma() :
 {
-	Comando retorno;
+	Lista<CreateUse> createUses = null;
+	Comando comando;
 }
 {
-	retorno = PComando()
+	( createUses = PListaCreateUse() )?
+	comando = PComando()
 	{
-		return new Programa(retorno);
+		if (createUses == null){
+			return new Programa(comando);
+		}
+		return new Programa(new ComandoPersistente(createUses, comando));
 	}
 }
 
 
+
+
 Comando PComando() :
-{
-    Lista<CreateUse> createUses = null;
-    Comando comandoBase = null;
-}
-{
-    (
-        createUses = PListaCreateUse()
-        ( <SEMICOLON> comandoBase = PComandoBase() )?
-      |
-        comandoBase = PComandoBase()
-    )
-    {
-        if (createUses == null) {
-            return comandoBase;
-        }
-        if (comandoBase == null) {
-            comandoBase = new Skip();
-        }
-        return new ComandoPersistente(createUses, comandoBase);
-    }
-}
-
-
-Comando PComandoBase() :
 {
 	Comando retorno;
 }
@@ -332,7 +315,7 @@ SequenciaComando PSequenciaComando() :
 {
 	c1 = PComandoSimples()
 	<SEMICOLON>
-	c2 = PComandoBase()
+	c2 = PComando()
 	{return new SequenciaComando(c1, c2);}
 }
 
@@ -380,9 +363,9 @@ IfThenElse PIfThenElse() :
 	<IF>
 		expressao = PExpressao()
 	<THEN>
-		comandoThen = PComandoBase()
+		comandoThen = PComando()
 	<ELSE>
-		comandoElse = PComandoBase()
+		comandoElse = PComando()
 	{return new IfThenElse (expressao, comandoThen, comandoElse);}
 }
 
@@ -395,7 +378,7 @@ While PWhile() :
 	<WHILE>
 		expressao = PExpressao()
 	<DO>
-		comando = PComandoBase()
+		comando = PComando()
 	{return new While(expressao, comando);}
 }
 
@@ -676,7 +659,7 @@ Comando PComandoSimples() :
       | retorno = PWhile()
       | retorno = PIfThenElse()
       | retorno = PIO()
-      | <LPAREN> retorno = PComandoBase() <RPAREN>
+      | <LPAREN> retorno = PComando() <RPAREN>
    	)
     {
         return retorno;
@@ -690,7 +673,7 @@ ComandoDeclaracao PComandoDeclaracao() :
 }
 {
 	<LBRACE> 
-		dec = PDeclaracao() <SEMICOLON> comando = PComandoBase() 
+		dec = PDeclaracao() <SEMICOLON> comando = PComando() 
 	<RBRACE>
  	{
  		return new ComandoDeclaracao(dec, comando);
@@ -795,8 +778,8 @@ Lista<CreateUse> PListaCreateUse() :
     Lista<CreateUse> cauda = new Lista<CreateUse>();
 }
 {
-    createUse = PCreateUse()
-    ( LOOKAHEAD(2) <SEMICOLON> cauda = PListaCreateUse() )?
+    createUse = PCreateUse() <SEMICOLON>
+    ( cauda = PListaCreateUse() )?
     {
         return new Lista<CreateUse>(createUse, cauda);
     }
