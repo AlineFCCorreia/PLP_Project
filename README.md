@@ -52,11 +52,12 @@ A seguir são apresentados exemplos simples dos novos comandos da linguagem.
 
 ### Definir tabelas
 
-Todas as tabelas usadas pelo programa são definidas no início, com suas colunas e respectivos tipos. Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos. Um programa pode conter apenas definições de tabelas, por exemplo para preparar tabelas que serão usadas por outros programas:
+Todas as tabelas usadas pelo programa são definidas no início, com suas colunas e respectivos tipos. Cada `create-use` termina com `;`, e depois da lista vem sempre o comando do programa:
 
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
-create-use pedidos (produto string, cliente string)
+create-use pedidos (produto string, cliente string);
+insert into clientes values ("Alice", 25, true)
 ```
 
 Se a tabela não existir no banco, ela é criada. Se já existir com o mesmo esquema, ela é usada como está. Assim, o mesmo programa pode ser executado várias vezes.
@@ -103,21 +104,17 @@ select nome from clientes where idade == 25
 ## BNF
 
 ```
-Programa ::= Comando
+Programa ::= [ListaCreateUse ";"] Comando                   [ALTERADO]
 
-Comando ::= ListaCreateUse                                   [NOVO]
-          | ListaCreateUse ";" ComandoBase                   [NOVO]
-          | ComandoBase                                      [NOVO]
-
-ComandoBase ::= Atribuicao                                   [NOVO]
-              | ComandoDeclaracao
-              | While
-              | IfThenElse
-              | IO
-              | ComandoBase ";" ComandoBase
-              | Skip
-              | Insert                                       [NOVO]
-              | Select                                       [NOVO]
+Comando ::= Atribuicao
+          | ComandoDeclaracao
+          | While
+          | IfThenElse
+          | IO
+          | Comando ";" Comando
+          | Skip
+          | Insert                                          [NOVO]
+          | Select                                          [NOVO]
 
 Skip ::=
 
@@ -145,7 +142,7 @@ ExpBinaria ::= Expressao "+" Expressao
              | Expressao "==" Expressao
              | Expressao "++" Expressao
 
-ComandoDeclaracao ::= "{" Declaracao ";" ComandoBase "}"     [ALTERADO]
+ComandoDeclaracao ::= "{" Declaracao ";" Comando "}"
 
 Declaracao ::= DeclaracaoVariavel
              | DeclaracaoComposta
@@ -154,10 +151,10 @@ DeclaracaoVariavel ::= "var" Id "=" Expressao
 
 DeclaracaoComposta ::= Declaracao "," Declaracao
 
-While ::= "while" Expressao "do" ComandoBase                 [ALTERADO]
+While ::= "while" Expressao "do" Comando
 
-IfThenElse ::= "if" Expressao "then" ComandoBase             [ALTERADO]
-               "else" ComandoBase
+IfThenElse ::= "if" Expressao "then" Comando
+               "else" Comando
 
 IO ::= "write" "(" Expressao ")"
      | "read" "(" Id ")"
@@ -203,19 +200,23 @@ ListaId ::= Id
           | Id "," ListaId
 ```
 
+Na BNF, `[ ... ]` indica um elemento opcional.
+
 ## Decisões de Projeto
 
 ### Definição das tabelas no início do programa
 
 As tabelas têm escopo global: elas existem no banco independentemente dos blocos do programa e sobrevivem ao seu término. Para que isso fique claro na própria sintaxe, as tabelas só podem ser definidas no início do programa, por meio de uma lista de `create-use`, antes de qualquer outro comando.
 
-A gramática separa dois níveis: `Comando`, que contém uma lista de `create-use`, um `ComandoBase`, ou uma lista de `create-use` seguida de um `ComandoBase`; e `ComandoBase`, que contém os comandos da Imperativa 1 mais o `insert` e o `select`. As produções `While`, `IfThenElse` e `ComandoDeclaracao` usam `ComandoBase`, de modo que um `create-use` não pode aparecer dentro de blocos ou laços. Assim, a definição de uma tabela nunca aparenta ter escopo local.
+A lista de `create-use` faz parte da regra `Programa`, e não de `Comando`: `Programa ::= [ListaCreateUse ";"] Comando`. Como as produções `While`, `IfThenElse` e `ComandoDeclaracao` usam `Comando`, um `create-use` não pode aparecer dentro de blocos ou laços. Assim, a definição de uma tabela nunca aparenta ter escopo local.
+
+Na implementação, a lista de `create-use` e o comando do programa são guardados juntos na classe `ComandoPersistente`, que implementa `Comando`; a classe `Programa` não foi alterada.
 
 O `create-use` é um comando de definição de tabela. Na verificação de tipos, ele registra o esquema da tabela no mapa de tabelas. Na execução, ele cria a tabela no banco, caso ela ainda não exista. Como seu efeito é persistente e global, ele é o único comando que só pode aparecer no início do programa.
 
 Além disso, o programa precisa definir todas as tabelas que utiliza, inclusive as que já existem no banco. Com isso, as tabelas usadas são conhecidas desde o início, sem a necessidade de percorrer o restante do programa.
 
-Os comandos `create-use` são separados por `;`, como qualquer sequência de comandos da Imperativa 1. O `;` também separa o último `create-use` do `ComandoBase`, quando ele existe:
+Cada `create-use` termina com `;`, inclusive o último, que o separa do comando do programa:
 
 ```text
 create-use clientes (nome string, idade int);
@@ -223,7 +224,7 @@ create-use pedidos (produto string, cliente string);
 insert into clientes values ("Alice", 25)
 ```
 
-Um programa pode conter apenas a lista de `create-use`, por exemplo para preparar tabelas que serão usadas por outros programas. Nesse caso, não há `;` depois do último `create-use`.
+Depois da lista vem sempre um comando: um programa que apenas define tabelas não é aceito.
 
 ### Semântica do `create-use`
 
@@ -266,19 +267,19 @@ Os erros de esquema são detectados na verificação de tipos, antes da execuç�
 
 ### Programa com `create-use`
 
-Um programa com `create-use` tem duas partes: a lista de `create-use` e, opcionalmente, o `ComandoBase` que vem em seguida. O `ComandoBase` pode conter qualquer comando da linguagem, inclusive blocos com declarações de variáveis, mas não `create-use`.
+Um programa com `create-use` tem duas partes: a lista de `create-use` e o comando `C` que vem em seguida. O comando pode ser qualquer comando da linguagem, inclusive blocos com declarações de variáveis, mas não pode conter `create-use`.
 
 ```text
-create-use T1 (...); ...; create-use Tk (...)    ← lista de create-use
-; C                                              ← ComandoBase (opcional)
+create-use T1 (...); ...; create-use Tk (...);   ← lista de create-use
+C                                                ← comando
 ```
 
 A verificação de tipos é feita em duas etapas:
 
 1. Cada `create-use` é verificado, na ordem em que aparece. Cada um que for bem tipado registra sua tabela no mapa de tabelas.
-2. Se houver um `ComandoBase` `C`, ele é verificado usando o mapa já preenchido. Assim, os `insert` e `select` só podem usar tabelas definidas na lista.
+2. O comando `C` é verificado usando o mapa já preenchido. Assim, os `insert` e `select` só podem usar tabelas definidas na lista.
 
-O programa é bem tipado se todos os `create-use` e, quando existir, o `ComandoBase` forem bem tipados.
+O programa é bem tipado se todos os `create-use` e o comando forem bem tipados.
 
 ### `create-use T (c1 t1, ..., cn tn)`
 
@@ -312,7 +313,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 ### Programa com `create-use`
 
 1. Cada `create-use` é executado, na ordem em que aparece.
-2. Em seguida, se houver um `ComandoBase` `C`, ele é executado.
+2. Em seguida, o comando `C` é executado.
 
 ### `create-use`
 
@@ -349,7 +350,7 @@ Falhas do banco (arquivo inacessível, erro de SQL) interrompem a execução com
 As seções de especificação acima descrevem a linguagem ImpSQL como definida pela equipe. A implementação está em andamento:
 
 - [x] Criação de tabela no SQLite (`CREATE TABLE IF NOT EXISTS`)
-- [x] Gramática e parser do `create-use` no início do programa (`Comando` e `ComandoBase`)
+- [x] Gramática e parser do `create-use` no início do programa (`Programa ::= [ListaCreateUse ";"] Comando`)
 - [x] Mapa de tabelas no ambiente de compilação
 - [x] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
 - [ ] `insert into`
