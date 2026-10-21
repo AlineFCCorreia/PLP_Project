@@ -1,5 +1,12 @@
 package li1.plp.imperative1.util;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+import li1.plp.expressions2.expression.Valor;
+import li1.plp.expressions2.expression.ValorBooleano;
+import li1.plp.expressions2.expression.ValorInteiro;
+import li1.plp.expressions2.expression.ValorString;
 import li1.plp.expressions1.util.Tipo;
 import li1.plp.expressions1.util.TipoPrimitivo;
 
@@ -42,6 +49,25 @@ public class SqliteHelper {
                 return TipoPrimitivo.BOOLEANO;
             default:
                 return null;
+        }
+    }
+
+
+    /**
+     * Coloca um valor da ImpSQL na posição indicada de um comando SQL preparado.
+     * A posição começa em 1, como no JDBC.
+     */
+    public static void definirParametro(PreparedStatement stmt, int posicao, Valor valor)
+            throws SQLException {
+
+        if (valor instanceof ValorInteiro) {
+            stmt.setInt(posicao, ((ValorInteiro) valor).valor());
+        } else if (valor instanceof ValorString) {
+            stmt.setString(posicao, ((ValorString) valor).valor());
+        } else if (valor instanceof ValorBooleano) {
+            stmt.setBoolean(posicao, ((ValorBooleano) valor).valor());
+        } else {
+            throw new IllegalArgumentException("Valor não suportado: " + valor);
         }
     }
 }

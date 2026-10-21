@@ -2,17 +2,20 @@ package li1.plp.imperative1.util;
 
 import li1.plp.expressions2.expression.Id;
 import li1.plp.imperative1.command.Coluna;
+import li1.plp.expressions2.expression.Valor;
+import li1.plp.expressions1.util.Tipo;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import li1.plp.expressions1.util.Tipo;
+
 
 /**
  * Gerencia conexões e operações no banco SQLite.
@@ -111,4 +114,42 @@ public class SqliteManager {
         }
         return esquema;
     }
+
+    /**
+     * Grava um registro na tabela, com os valores na ordem das colunas.
+     */
+    public void inserir(Id id, Lista<Valor> valores) {
+
+        // Monta "INSERT INTO tabela VALUES (?, ?, ...)", com um ? por valor.
+        StringBuilder sql = new StringBuilder("INSERT INTO ");
+        sql.append(id.getIdName()).append(" VALUES (");
+
+        int quantidade = valores.length();
+        for (int i = 0; i < quantidade; i++) {
+            sql.append(i == 0 ? "?" : ", ?");
+        }
+        sql.append(");");
+
+        try (Connection conn = DriverManager.getConnection(URL_BANCO);
+             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            int posicao = 1;
+            Lista<Valor> aux = valores;
+            while (aux != null && aux.getHead() != null) {
+                SqliteHelper.definirParametro(stmt, posicao, aux.getHead());
+                posicao++;
+                aux = aux.getTail();
+            }
+
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                "Erro ao inserir na tabela '" + id.getIdName() + "': " + e.getMessage(), e);
+        }
+    }
+
+
+
+
 }
