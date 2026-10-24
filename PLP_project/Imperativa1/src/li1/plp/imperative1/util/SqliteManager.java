@@ -142,6 +142,9 @@ public class SqliteManager {
             }
 
             stmt.executeUpdate();
+            System.out.println("[ImpSQL] Tabela '" + id.getIdName()
+                 + "' com novos dados: " + valores);
+
 
         } catch (SQLException e) {
             throw new RuntimeException(

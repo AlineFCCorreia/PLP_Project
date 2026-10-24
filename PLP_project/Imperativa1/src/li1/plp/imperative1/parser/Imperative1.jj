@@ -144,6 +144,9 @@ TOKEN : /* TOKENS DOS TIPOS UTILIZADOS */
 TOKEN : /* TOKENS DA IMP_SQL */
 {
   < CREATE_USE: "create-use" >
+| < INSERT: "insert" >
+| < INTO: "into" >
+| < VALUES: "values" >
 }
 
 
@@ -659,6 +662,7 @@ Comando PComandoSimples() :
       | retorno = PWhile()
       | retorno = PIfThenElse()
       | retorno = PIO()
+	  | retorno = PInsert()
       | <LPAREN> retorno = PComando() <RPAREN>
    	)
     {
@@ -756,6 +760,21 @@ Lista<Coluna> PListaColunas() :
     }
 }
 
+ListaExpressao PListaExpressao() :
+{
+    Expressao expressao;
+    ListaExpressao cauda = new ListaExpressao();
+}
+{
+    expressao = PExpressao()
+    (
+        <COMMA> cauda = PListaExpressao()
+    )?
+    {
+        return new ListaExpressao(expressao, cauda);
+    }
+}
+
 CreateUse PCreateUse() :
 {
     Id id;
@@ -782,5 +801,22 @@ Lista<CreateUse> PListaCreateUse() :
     ( cauda = PListaCreateUse() )?
     {
         return new Lista<CreateUse>(createUse, cauda);
+    }
+}
+
+Insert PInsert() :
+{
+    Id id;
+    ListaExpressao expressoes;
+}
+{
+    <INSERT> <INTO>
+    id = PId()
+    <VALUES>
+    <LPAREN>
+    expressoes = PListaExpressao()
+    <RPAREN>
+    {
+        return new Insert(id, expressoes);
     }
 }
