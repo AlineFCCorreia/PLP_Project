@@ -353,6 +353,6 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [x] Gramática e parser do `create-use` no início do programa (`Programa ::= [ListaCreateUse ";"] Comando`)
 - [x] Mapa de tabelas no ambiente de compilação
 - [x] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
-- [ ] `insert into`
+- [x] `insert into`
 - [ ] `select`
 - [ ] Tratamento de erros do banco com exceções
