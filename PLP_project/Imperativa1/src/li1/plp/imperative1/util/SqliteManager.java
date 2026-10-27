@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
 
 
 
@@ -150,6 +151,38 @@ public class SqliteManager {
             throw new RuntimeException(
                 "Erro ao inserir na tabela '" + id.getIdName() + "': " + e.getMessage(), e);
         }
+    }
+
+        /**
+     * Lê todos os registros de uma tabela. Cada registro associa o nome de
+     * cada coluna ao seu valor, na ordem das colunas da tabela.
+     */
+    public List<LinkedHashMap<Id, Valor>> lerRegistros(Id id) {
+
+        String sql = "SELECT * FROM " + id.getIdName() + ";";
+        List<LinkedHashMap<Id, Valor>> registros = new ArrayList<LinkedHashMap<Id, Valor>>();
+
+        try (Connection conn = DriverManager.getConnection(URL_BANCO);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            int quantidade = rs.getMetaData().getColumnCount();
+
+            while (rs.next()) {
+                LinkedHashMap<Id, Valor> registro = new LinkedHashMap<Id, Valor>();
+                for (int coluna = 1; coluna <= quantidade; coluna++) {
+                    Id nome = new Id(rs.getMetaData().getColumnName(coluna));
+                    registro.put(nome, SqliteHelper.lerValor(rs, coluna));
+                }
+                registros.add(registro);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException(
+                "Erro ao ler os registros da tabela '" + id.getIdName() + "': " + e.getMessage(), e);
+        }
+
+        return registros;
     }
 
 

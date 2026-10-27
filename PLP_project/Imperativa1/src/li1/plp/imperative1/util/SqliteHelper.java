@@ -2,6 +2,7 @@ package li1.plp.imperative1.util;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.ResultSet;
 
 import li1.plp.expressions2.expression.Valor;
 import li1.plp.expressions2.expression.ValorBooleano;
@@ -68,6 +69,27 @@ public class SqliteHelper {
             stmt.setBoolean(posicao, ((ValorBooleano) valor).valor());
         } else {
             throw new IllegalArgumentException("Valor não suportado: " + valor);
+        }
+    }
+
+        /**
+     * Lê a célula de uma coluna da linha atual de um resultado e a converte
+     * num Valor da ImpSQL, de acordo com o tipo declarado da coluna.
+     * A coluna começa em 1, como no JDBC.
+     */
+    public static Valor lerValor(ResultSet rs, int coluna) throws SQLException {
+
+        String tipoSql = rs.getMetaData().getColumnTypeName(coluna);
+        Tipo tipo = converterParaTipoImpSQL(tipoSql);
+
+        if (tipo == null) {
+            throw new IllegalArgumentException("Tipo de coluna não suportado: " + tipoSql);
+        } else if (tipo.eInteiro()) {
+            return new ValorInteiro(rs.getInt(coluna));
+        } else if (tipo.eString()) {
+            return new ValorString(rs.getString(coluna));
+        } else {
+            return new ValorBooleano(rs.getBoolean(coluna));
         }
     }
 }
