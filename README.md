@@ -175,10 +175,8 @@ CreateUse ::= "create-use" Id "(" ListaColunas ")"           [NOVO]
 Insert ::= "insert" "into" Id                                [NOVO]
            "values" "(" ListaExpressao ")"
 
-Select ::= "select" "*" "from" Id                            [NOVO]
-         | "select" "*" "from" Id "where" Expressao
-         | "select" ListaId "from" Id
-         | "select" ListaId "from" Id "where" Expressao
+Select ::= "select" "*" "from" Id ["where" Expressao]        [NOVO]
+         | "select" ListaId "from" Id ["where" Expressao]
 
 ;-------------------------------------------------------
 ; Definições auxiliares
