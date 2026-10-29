@@ -354,5 +354,5 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [x] Mapa de tabelas no ambiente de compilação
 - [x] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
 - [x] `insert into`
-- [ ] `select`
+- [x] `select`
 - [ ] Tratamento de erros do banco com exceções
