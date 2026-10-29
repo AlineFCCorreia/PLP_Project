@@ -147,6 +147,9 @@ TOKEN : /* TOKENS DA IMP_SQL */
 | < INSERT: "insert" >
 | < INTO: "into" >
 | < VALUES: "values" >
+| < SELECT: "select" >
+| < FROM: "from" >
+| < WHERE: "where" >
 }
 
 
@@ -663,6 +666,7 @@ Comando PComandoSimples() :
       | retorno = PIfThenElse()
       | retorno = PIO()
 	  | retorno = PInsert()
+	  | retorno = PSelect()
       | <LPAREN> retorno = PComando() <RPAREN>
    	)
     {
@@ -775,6 +779,44 @@ ListaExpressao PListaExpressao() :
     }
 }
 
+Lista<Id> PListaId() :
+{
+	Id id;
+	Lista<Id> cauda = new Lista<Id>();
+}
+{
+	id = PId()
+	(
+		<COMMA> cauda = PListaId()
+	)?
+	{
+		return new Lista<Id>(id, cauda);
+	}
+}
+
+Select PSelect() :
+{
+	Id id;
+	Lista<Id> colunas = null;
+	Expressao condicao = null;
+}
+{
+	<SELECT>
+	(
+		<STAR>
+		| colunas = PListaId()
+	)
+	<FROM>
+	id = PId()
+	(
+		<WHERE> condicao = PExpressao()
+	)?
+	{
+		return new Select(id, colunas, condicao);
+	}
+}
+
+
 CreateUse PCreateUse() :
 {
     Id id;
@@ -820,3 +862,4 @@ Insert PInsert() :
         return new Insert(id, expressoes);
     }
 }
+
