@@ -94,21 +94,28 @@ public class Select implements Comando {
     }
 
     /**
-     * A tabela precisa ter sido definida, as colunas pedidas precisam
-     * existir nela, e o where precisa ser booleano.
+     * Verifica se o select é bem tipado: a tabela foi definida por um
+     * create-use, as colunas pedidas existem na tabela e, se houver where,
+     * a condição é bem tipada e booleana.
      */
     @Override
     public boolean checaTipo(AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException,
             EntradaVaziaException {
 
-        // Regra 1: a tabela foi definida por um create-use.
+        // Esquema da tabela, ou null se ela não foi definida por um create-use.
         Lista<Coluna> esquema = ambiente.getTabela(id);
-        if (esquema == null) {
-            return false;
-        }
 
-        // Regra 2: cada coluna pedida existe na tabela.
+        return esquema != null                              // a tabela foi definida
+                && colunasExistem(esquema)                  // as colunas pedidas existem
+                && condicaoBemTipada(ambiente, esquema);    // o where é booleano
+    }
+
+    /**
+     * Verifica se cada coluna pedida existe na tabela.
+     * No select *, não há colunas pedidas, e o resultado é true.
+     */
+    private boolean colunasExistem(Lista<Coluna> esquema) {
         Lista<Id> aux = colunas;
         while (aux != null && aux.getHead() != null) {
             if (!existeColuna(esquema, aux.getHead())) {
@@ -116,23 +123,36 @@ public class Select implements Comando {
             }
             aux = aux.getTail();
         }
+        return true;
+    }
 
-        // Regra 3: o where é bem tipado e booleano, com as colunas como variáveis.
+    /**
+     * Verifica o where num escopo temporário em que cada coluna da tabela
+     * está associada ao seu tipo. Uma coluna esconde uma variável de mesmo
+     * nome. Sem where, o resultado é true.
+     */
+    private boolean condicaoBemTipada(AmbienteCompilacaoImperativa ambiente,
+            Lista<Coluna> esquema)
+            throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException {
+
         if (condicao == null) {
             return true;
         }
+
+        boolean resposta;
         ambiente.incrementa();
-        try {
-            Lista<Coluna> coluna = esquema;
-            while (coluna != null && coluna.getHead() != null) {
-                ambiente.map(coluna.getHead().getId(), coluna.getHead().getTipo());
-                coluna = coluna.getTail();
-            }
-            return condicao.checaTipo(ambiente)
-                    && condicao.getTipo(ambiente).eBooleano();
-        } finally {
-            ambiente.restaura();
+
+        // As colunas entram no escopo como variáveis, com o tipo de cada uma.
+        Lista<Coluna> coluna = esquema;
+        while (coluna != null && coluna.getHead() != null) {
+            ambiente.map(coluna.getHead().getId(), coluna.getHead().getTipo());
+            coluna = coluna.getTail();
         }
+
+        resposta = condicao.checaTipo(ambiente)
+                && condicao.getTipo(ambiente).eBooleano();
+        ambiente.restaura();
+        return resposta;
     }
 
     /**
