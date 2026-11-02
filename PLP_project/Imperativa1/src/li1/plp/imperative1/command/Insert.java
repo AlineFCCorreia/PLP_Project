@@ -42,30 +42,33 @@ public class Insert implements Comando {
     }
 
     /**
-     * A tabela precisa ter sido definida, e cada expressão precisa ter
-     * o tipo da coluna na mesma posição.
+     * Verifica se o insert é bem tipado: a tabela foi definida por um
+     * create-use, as expressões são bem tipadas e os tipos dos valores
+     * correspondem aos das colunas, posição a posição.
      */
-    @Override
     public boolean checaTipo(AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException,
             EntradaVaziaException {
 
-                // Regra 1: a tabela foi definida por um create-use.
+        // Esquema da tabela, ou null se ela não foi definida por um create-use.
         Lista<Coluna> colunas = ambiente.getTabela(id);
-        if (colunas == null) {
-            return false;
-        }
 
-        // Regra 2: todas as expressões são bem tipadas.
-        if (!expressoes.checaTipo(ambiente)) {
-            return false;
-        }
+        return colunas != null                                               // a tabela foi definida
+                && expressoes.checaTipo(ambiente)                            // as expressões são bem tipadas
+                && tiposCompativeis(expressoes.getTipos(ambiente), colunas); // os tipos batem com as colunas
+    }
 
-        // Regra 3: mesma quantidade e mesmos tipos, posição a posição.
-        List<Tipo> tipos = expressoes.getTipos(ambiente);
+    /**
+     * Verifica se os tipos dos valores correspondem aos tipos das colunas:
+     * mesma quantidade e mesmo tipo em cada posição.
+     */
+    private boolean tiposCompativeis(List<Tipo> tipos, Lista<Coluna> colunas) {
+        // Um valor para cada coluna.
         if (tipos.size() != colunas.length()) {
             return false;
         }
+
+        // O i-esimo valor tem o tipo da i-ésima coluna.
         Lista<Coluna> coluna = colunas;
         for (Tipo tipo : tipos) {
             if (!tipo.eIgual(coluna.getHead().getTipo())) {
@@ -75,8 +78,6 @@ public class Insert implements Comando {
         }
         return true;
     }
-
-
 
     @Override
     public String toString() {
