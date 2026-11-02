@@ -452,7 +452,79 @@ create-use clientes (nome string, idade int, ativo boolean);
 
 Saída: `resultado = "Carla"`. Depois de `into` e `from`, `clientes` é a tabela; nas expressões, é a variável.
 
-### 6. Erros de tipo
+### 6. Condições compostas no `where`
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var limite = 31;
+  select idade, nome from clientes where ((not ativo) and (idade == limite)) or (nome == "Carla")
+}
+```
+
+Saída: `resultado = 31 "Bob" 10 "Carla"`. As colunas são escritas na ordem em que aparecem no `select`, não na ordem da tabela.
+
+### 7. Inserção dentro de um laço, com leitura da entrada
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "", var i = 0, var a = false, var k = 0;
+  (while not (k == 2) do (
+     read(n); read(i); read(a);
+     insert into clientes values (n ++ " Silva", i, a);
+     k := k + 1
+  ));
+  select nome from clientes where (idade == 40) or (idade == 19)
+}
+```
+
+Entrada: `Ana 40 true Bia 19 false`
+
+Saída: `resultado = "Ana Silva" "Bia Silva"`. Os valores lidos são combinados em expressões antes de serem gravados.
+
+### 8. Várias tabelas e inserção condicional
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+create-use clientes (nome string, idade int, ativo boolean);
+create-use ativos (nome string);
+create-use inativos (nome string);
+{ var n = "", var a = false, var k = 0;
+  (while not (k == 3) do (
+     read(n); read(a);
+     (if a then insert into ativos values (n)
+           else insert into inativos values (n));
+     k := k + 1
+  ));
+  write("ativos:");
+  select * from ativos;
+  write("inativos:");
+  select * from inativos
+}
+```
+
+Entrada: `Caio true Dani false Edu true`
+
+Saída: `resultado = "ativos:" "Caio" "Edu" "inativos:" "Dani"`. A mesma tabela pode ser declarada mais de uma vez, desde que com o mesmo esquema.
+
+### 9. Consulta sem resultados
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var x = 0;
+  select idade, nome from clientes where idade == 100;
+  write("nenhum cliente com 100 anos")
+}
+```
+
+Saída: `resultado = "nenhum cliente com 100 anos"`. Um `select` sem registros não escreve nada e não é um erro.
+
+Os programas das seções 1 a 9 estão em `exemplos/exemplo1.txt` a `exemplo9.txt`. Para os exemplos 7 e 8, a entrada vai depois do nome do arquivo:
+
+```bash
+mvn -q exec:java "-Dfile=exemplos/exemplo7.txt Ana 40 true Bia 19 false"
+```
+
+### 10. Erros de tipo
 
 Todos os programas abaixo são rejeitados antes da execução, com `erro de tipos!`, e o banco não é alterado:
 
@@ -463,6 +535,9 @@ Todos os programas abaixo são rejeitados antes da execução, com `erro de tipo
 | `create-use clientes (nome string, idade int, ativo boolean); insert into clientes values ("Ana", 20)` | faltam valores |
 | `create-use clientes (nome string, idade int, ativo boolean); select email from clientes` | `email` não é coluna de `clientes` |
 | `create-use clientes (nome string, idade int, ativo boolean); select nome from clientes where idade` | a condição não é `boolean` |
+| `create-use produtos (nome string, preco int); create-use produtos (nome string); select * from produtos` | a mesma tabela foi definida com dois esquemas |
+| `create-use produtos (nome string, nome int); select * from produtos` | duas colunas com o mesmo nome |
+| `insert` com `("Zeca", true, 10)` dentro de um `if` | os valores estão fora de ordem; o erro é detectado mesmo num ramo que não seria executado |
 
 No terminal, cada erro é precedido de uma mensagem `[ImpSQL] Erro de tipo: ...` com o motivo.
 
@@ -474,9 +549,32 @@ insert into produtos values ("caneta")
 
 Saída: `Tabela produtos nao definida por um create-use neste programa.`
 
-Os programas desta seção estão em `exemplos/erro1.txt` a `erro6.txt`.
+O mesmo acontece com `select * from clientes` sem nenhum `create-use` (`exemplos/erro10.txt`).
 
-### 7. Erro de sintaxe
+Uma coluna que não pertence à tabela, usada no `where`, é tratada como variável não declarada (`exemplos/erro12.txt`):
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+select nome from clientes where cidade == "Recife"
+```
+
+Saída: `Variável cidade não declarada.`
+
+As colunas só são visíveis dentro do `where`. Depois do `select`, `nome` não existe (`exemplos/erro13.txt`):
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var x = 0;
+  select nome from clientes where idade == 25;
+  write(nome)
+}
+```
+
+Saída: `Variável nome não declarada.`
+
+Os programas desta seção estão em `exemplos/erro1.txt` a `erro6.txt` e `erro8.txt` a `erro13.txt`.
+
+### 11. Erro de sintaxe
 
 ```text
 { var x = 1;
@@ -486,6 +584,8 @@ Os programas desta seção estão em `exemplos/erro1.txt` a `erro6.txt`.
 ```
 
 O parser rejeita o programa: um `create-use` só pode aparecer no início. O programa está em `exemplos/erro7.txt`.
+
+Um programa só com `create-use`, sem comando, também é rejeitado pelo parser (`exemplos/erro14.txt`): a gramática exige um `Comando` depois da lista.
 
 ## Limitações e Extensões Futuras
 
