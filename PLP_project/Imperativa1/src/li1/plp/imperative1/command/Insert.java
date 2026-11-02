@@ -11,6 +11,7 @@ import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.SqliteManager;
 import java.util.List;
 import li1.plp.imperative1.util.Coluna;
+import li1.plp.imperative1.util.ErroTipo;
 
 import li1.plp.expressions1.util.Tipo;
 import li1.plp.imperative1.memory.ListaValor;
@@ -65,14 +66,16 @@ public class Insert implements Comando {
     private boolean tiposCompativeis(List<Tipo> tipos, Lista<Coluna> colunas) {
         // Um valor para cada coluna.
         if (tipos.size() != colunas.length()) {
-            return false;
+            return ErroTipo.erro("a tabela " + id + " tem " + colunas.length()
+                    + " colunas, mas foram dados " + tipos.size() + " valores");
         }
 
         // O i-esimo valor tem o tipo da i-ésima coluna.
         Lista<Coluna> coluna = colunas;
         for (Tipo tipo : tipos) {
             if (!tipo.eIgual(coluna.getHead().getTipo())) {
-                return false;
+                return ErroTipo.erro("o valor da coluna " + coluna.getHead().getId()
+                        + " deveria ser " + coluna.getHead().getTipo() + ", mas e " + tipo);
             }
             coluna = coluna.getTail();
         }

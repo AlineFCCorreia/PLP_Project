@@ -8,6 +8,7 @@ import li1.plp.expressions2.memory.IdentificadorNaoDeclaradoException;
 import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.SqliteManager;
 import li1.plp.imperative1.util.Coluna;
+import li1.plp.imperative1.util.ErroTipo;
 import java.util.HashSet;
 
 /**
@@ -62,7 +63,7 @@ public class CreateUse{
         while (aux != null && aux.getHead() != null) {
             Id nome = aux.getHead().getId();
             if (!nomes.add(nome)) {
-                return false;       // nome repetido
+                return ErroTipo.erro("a tabela " + id + " tem duas colunas chamadas " + nome);      // nome repetido
             }
             aux = aux.getTail();
         }
@@ -132,7 +133,7 @@ public class CreateUse{
      * resultado é true.
      */
     private boolean compativelComDefinicaoAnterior(AmbienteCompilacaoImperativa ambiente) {
-        return !ambiente.existeTabela(id) || mesmoEsquema(ambiente.getTabela(id));
+        return !ambiente.existeTabela(id) || mesmoEsquema(ambiente.getTabela(id)) || ErroTipo.erro("a tabela " + id + " foi definida antes com outro esquema");
     }
 
     /**
@@ -141,7 +142,7 @@ public class CreateUse{
      */
     private boolean compativelComBanco() {
         Lista<Coluna> esquemaBanco = SqliteManager.getInstance().lerEsquema(id);
-        return esquemaBanco == null || mesmoEsquema(esquemaBanco);
+        return esquemaBanco == null || mesmoEsquema(esquemaBanco) || ErroTipo.erro("o esquema de " + id + " e diferente do da tabela no banco");
     }
 
     @Override

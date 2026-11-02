@@ -16,6 +16,7 @@ import li1.plp.imperative1.memory.EntradaVaziaException;
 import li1.plp.imperative1.memory.ErroTipoEntradaException;
 import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.Coluna;
+import li1.plp.imperative1.util.ErroTipo;
 import li1.plp.imperative1.util.SqliteManager;
 
 /**
@@ -119,7 +120,7 @@ public class Select implements Comando {
         Lista<Id> aux = colunas;
         while (aux != null && aux.getHead() != null) {
             if (!existeColuna(esquema, aux.getHead())) {
-                return false;
+                return ErroTipo.erro(aux.getHead() + " nao e uma coluna da tabela " + id);
             }
             aux = aux.getTail();
         }
@@ -150,7 +151,8 @@ public class Select implements Comando {
         }
 
         resposta = condicao.checaTipo(ambiente)
-                && condicao.getTipo(ambiente).eBooleano();
+                && (condicao.getTipo(ambiente).eBooleano()
+                    || ErroTipo.erro("a condicao do where nao e booleana"));
         ambiente.restaura();
         return resposta;
     }

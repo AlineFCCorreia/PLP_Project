@@ -464,6 +464,8 @@ Todos os programas abaixo são rejeitados antes da execução, com `erro de tipo
 | `create-use clientes (nome string, idade int, ativo boolean); select email from clientes` | `email` não é coluna de `clientes` |
 | `create-use clientes (nome string, idade int, ativo boolean); select nome from clientes where idade` | a condição não é `boolean` |
 
+No terminal, cada erro é precedido de uma mensagem `[ImpSQL] Erro de tipo: ...` com o motivo.
+
 Usar uma tabela que não foi definida por um `create-use` também é rejeitado antes da execução, mas com uma mensagem própria. Isso vale mesmo que a tabela exista no banco, criada por outro programa:
 
 ```text
