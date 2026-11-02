@@ -52,7 +52,7 @@ public class CreateUse{
             
         return ambiente;
     }
-        /**
+    /**
      * Verifica se os nomes das colunas são distintos entre si.
      */
     private boolean colunasDistintas() {
@@ -68,7 +68,7 @@ public class CreateUse{
         }
         return true;
     }
-        /**
+    /**
      * Verifica se o esquema declarado é igual ao esquema da tabela no banco:
      * mesmas colunas, na mesma ordem, com os mesmos tipos.
      */
@@ -103,34 +103,46 @@ public class CreateUse{
     }
 
     
-    public boolean checaTipo(
-            AmbienteCompilacaoImperativa ambiente)
+    /**
+     * Verifica se o create-use é bem tipado: 
+     * o esquema é igual ao de uma definição anterior da mesma tabela, se houver; 
+     * os nomes das colunas são distintos; 
+     * e o esquema é igual ao da tabela no banco, se ela já existir. Os tipos das colunas são válidos pela gramática.
+     *
+     * Se for bem tipado, registra a tabela no mapa de tabelas.
+     */
+    public boolean checaTipo(AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        // Regra 1: se a tabela já foi definida antes na mesma lista,
-        // o esquema precisa ser igual ao da definição anterior.
+        boolean resposta = compativelComDefinicaoAnterior(ambiente) // igual à definição anterior
+                && colunasDistintas()                               // sem colunas repetidas
+                && compativelComBanco();                            // igual à tabela no banco
+
+        // Só registra a tabela depois que a verificação passa.
+        if (resposta) {
+            ambiente.mapTabela(id, colunas);
+        }
+        return resposta;
+    }
+
+    /**
+     * Verifica se o esquema é igual ao de uma definição anterior da mesma
+     * tabela, na mesma lista de create-use. Sem definição anterior, o
+     * resultado é true.
+     */
+    private boolean compativelComDefinicaoAnterior(AmbienteCompilacaoImperativa ambiente) {
         Lista<Coluna> definicaoAnterior = ambiente.getTabela(id);
-        if (definicaoAnterior != null && !mesmoEsquema(definicaoAnterior)) {
-            return false;
-        }
+        return definicaoAnterior == null || mesmoEsquema(definicaoAnterior);
+    }
 
-        // Regra 2: os nomes das colunas devem ser distintos.
-        if (!colunasDistintas()) {
-            return false;
-        }
-
-        // Regra 3 (tipos válidos) é garantida pela gramática: PTipo só aceita
-        // int, boolean e string.
-
-        // Regra 4: se a tabela já existe no banco, o esquema precisa ser o mesmo.
+    /**
+     * Verifica se o esquema é igual ao da tabela no banco. Se a tabela
+     * ainda não existe no banco, o resultado é true.
+     */
+    private boolean compativelComBanco() {
         Lista<Coluna> esquemaBanco = SqliteManager.getInstance().lerEsquema(id);
-        if (esquemaBanco != null && !mesmoEsquema(esquemaBanco)) {
-            return false;
-        }
-
-        ambiente.mapTabela(id, colunas);
-        return true;
+        return esquemaBanco == null || mesmoEsquema(esquemaBanco);
     }
 
     @Override
