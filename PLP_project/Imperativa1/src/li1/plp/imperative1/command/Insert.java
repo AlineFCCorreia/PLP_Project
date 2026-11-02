@@ -50,10 +50,10 @@ public class Insert implements Comando {
             throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException,
             EntradaVaziaException {
 
-        // Esquema da tabela, ou null se ela não foi definida por um create-use.
+        // Esquema da tabela
         Lista<Coluna> colunas = ambiente.getTabela(id);
 
-        return colunas != null                                               // a tabela foi definida
+        return colunas != null                                               // a tabela foi definida, nunca vem null
                 && expressoes.checaTipo(ambiente)                            // as expressões são bem tipadas
                 && tiposCompativeis(expressoes.getTipos(ambiente), colunas); // os tipos batem com as colunas
     }

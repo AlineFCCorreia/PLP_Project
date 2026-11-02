@@ -47,8 +47,12 @@ public class ContextoCompilacaoImperativa extends ContextoCompilacao
         tabelas.put(id, colunas);
     }
 
-    public Lista<Coluna> getTabela(Id id) {
-        return tabelas.get(id);
+    public Lista<Coluna> getTabela(Id id) throws TabelaNaoDeclaradaException {
+        Lista<Coluna> colunas = tabelas.get(id);
+        if (colunas == null) {
+            throw new TabelaNaoDeclaradaException(id);
+        }
+        return colunas;
     }
 
     public boolean existeTabela(Id id) {

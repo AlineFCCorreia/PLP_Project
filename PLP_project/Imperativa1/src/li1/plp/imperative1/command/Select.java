@@ -103,10 +103,10 @@ public class Select implements Comando {
             throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException,
             EntradaVaziaException {
 
-        // Esquema da tabela, ou null se ela não foi definida por um create-use.
+        // Esquema da tabela
         Lista<Coluna> esquema = ambiente.getTabela(id);
 
-        return esquema != null                              // a tabela foi definida
+        return esquema != null                              // a tabela foi definida, nunca vem null
                 && colunasExistem(esquema)                  // as colunas pedidas existem
                 && condicaoBemTipada(ambiente, esquema);    // o where é booleano
     }

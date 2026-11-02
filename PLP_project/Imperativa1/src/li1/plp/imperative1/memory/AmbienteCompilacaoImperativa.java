@@ -17,9 +17,12 @@ public interface AmbienteCompilacaoImperativa extends AmbienteCompilacao {
 	public void mapTabela(Id id, Lista<Coluna> colunas);
 
 	/**
-	 * Devolve as colunas de uma tabela, ou {@code null} se ela não estiver no mapa.
+	 * Devolve as colunas de uma tabela.
+	 *
+	 * @throws TabelaNaoDeclaradaException se a tabela não estiver no mapa,
+	 *         ou seja, não foi definida por um create-use.
 	 */
-	public Lista<Coluna> getTabela(Id id);
+	public Lista<Coluna> getTabela(Id id) throws TabelaNaoDeclaradaException;
 
 	/**
 	 * Indica se uma tabela já está no mapa de tabelas.

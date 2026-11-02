@@ -132,8 +132,7 @@ public class CreateUse{
      * resultado é true.
      */
     private boolean compativelComDefinicaoAnterior(AmbienteCompilacaoImperativa ambiente) {
-        Lista<Coluna> definicaoAnterior = ambiente.getTabela(id);
-        return definicaoAnterior == null || mesmoEsquema(definicaoAnterior);
+        return !ambiente.existeTabela(id) || mesmoEsquema(ambiente.getTabela(id));
     }
 
     /**
