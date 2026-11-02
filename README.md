@@ -463,9 +463,16 @@ Todos os programas abaixo são rejeitados antes da execução, com `erro de tipo
 | `create-use clientes (nome string, idade int, ativo boolean); insert into clientes values ("Ana", 20)` | faltam valores |
 | `create-use clientes (nome string, idade int, ativo boolean); select email from clientes` | `email` não é coluna de `clientes` |
 | `create-use clientes (nome string, idade int, ativo boolean); select nome from clientes where idade` | a condição não é `boolean` |
-| `insert into produtos values ("caneta")` | `produtos` não foi definida por um `create-use` |
 
-Os programas desta seção estão em exemplos/erro1.txt a erro7.txt.
+Usar uma tabela que não foi definida por um `create-use` também é rejeitado antes da execução, mas com uma mensagem própria. Isso vale mesmo que a tabela exista no banco, criada por outro programa:
+
+```text
+insert into produtos values ("caneta")
+```
+
+Saída: `Tabela produtos nao definida por um create-use neste programa.`
+
+Os programas desta seção estão em `exemplos/erro1.txt` a `erro6.txt`.
 
 ### 7. Erro de sintaxe
 
@@ -476,7 +483,7 @@ Os programas desta seção estão em exemplos/erro1.txt a erro7.txt.
 }
 ```
 
-O parser rejeita o programa: um `create-use` só pode aparecer no início. 
+O parser rejeita o programa: um `create-use` só pode aparecer no início. O programa está em `exemplos/erro7.txt`.
 
 ## Limitações e Extensões Futuras
 
