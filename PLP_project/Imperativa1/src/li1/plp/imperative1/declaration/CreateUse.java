@@ -106,7 +106,7 @@ public class CreateUse{
     
     /**
      * Verifica se o create-use é bem tipado: 
-     * o esquema é igual ao de uma definição anterior da mesma tabela, se houver; 
+     * a tabela não foi declarada anteriormente no programa; 
      * os nomes das colunas são distintos; 
      * e o esquema é igual ao da tabela no banco, se ela já existir. Os tipos das colunas são válidos pela gramática.
      *
@@ -116,7 +116,7 @@ public class CreateUse{
             throws IdentificadorJaDeclaradoException,
             IdentificadorNaoDeclaradoException {
 
-        boolean resposta = compativelComDefinicaoAnterior(ambiente) // igual à definição anterior
+        boolean resposta = naoDeclaradaAntes(ambiente)              // nao declarada antes
                 && colunasDistintas()                               // sem colunas repetidas
                 && compativelComBanco();                            // igual à tabela no banco
 
@@ -128,12 +128,10 @@ public class CreateUse{
     }
 
     /**
-     * Verifica se o esquema é igual ao de uma definição anterior da mesma
-     * tabela, na mesma lista de create-use. Sem definição anterior, o
-     * resultado é true.
+     * Verifica se a tabela ainda não foi declarada por outro create-use.
      */
-    private boolean compativelComDefinicaoAnterior(AmbienteCompilacaoImperativa ambiente) {
-        return !ambiente.existeTabela(id) || mesmoEsquema(ambiente.getTabela(id)) || ErroTipo.erro("a tabela " + id + " foi definida antes com outro esquema");
+    private boolean naoDeclaradaAntes(AmbienteCompilacaoImperativa ambiente) {
+        return !ambiente.existeTabela(id) || ErroTipo.erro("a tabela " + id + " ja foi declarada");
     }
 
     /**

@@ -302,7 +302,7 @@ O programa é bem tipado se todos os `create-use` e o comando forem bem tipados.
 
 É bem tipado se:
 
-1. Se a tabela `T` já foi definida anteriormente na mesma lista, o esquema `(c1 t1, ..., cn tn)` é igual ao da definição anterior.
+1. A tabela T não foi definida anteriormente na mesma lista de create-use.
 2. Os nomes `c1, ..., cn` são distintos entre si.
 3. Os tipos `t1, ..., tn` são válidos, o que já é garantido pela gramática.
 4. Se `T` já existe no banco, seu esquema é igual a `(c1 t1, ..., cn tn)`: mesmas colunas, na mesma ordem, com os mesmos tipos.
@@ -485,7 +485,6 @@ Saída: `resultado = "Ana Silva" "Bia Silva"`. Os valores lidos são combinados 
 
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
-create-use clientes (nome string, idade int, ativo boolean);
 create-use ativos (nome string);
 create-use inativos (nome string);
 { var n = "", var a = false, var k = 0;
@@ -504,7 +503,7 @@ create-use inativos (nome string);
 
 Entrada: `Caio true Dani false Edu true`
 
-Saída: `resultado = "ativos:" "Caio" "Edu" "inativos:" "Dani"`. A mesma tabela pode ser declarada mais de uma vez, desde que com o mesmo esquema.
+Saída: `resultado = "ativos:" "Caio" "Edu" "inativos:" "Dani"`. 
 
 ### 9. Consulta sem resultados
 
@@ -541,16 +540,16 @@ select * from clientes
 - Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
 - Terminal: `[ImpSQL] Erro de tipo: a tabela clientes ja existe no banco com outro esquema`
 
-#### Mesma tabela definida com dois esquemas (`exemplos/erro8.txt`)
+#### Mesma tabela definida novamente (`exemplos/erro8.txt`)
 
 ```text
 create-use produtos (nome string, preco int);
-create-use produtos (nome string);
+create-use produtos (nome string, preco int);
 select * from produtos
 ```
 
 - Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
-- Terminal: `[ImpSQL] Erro de tipo: a tabela produtos foi definida antes com outro esquema`
+- Terminal: `[ImpSQL] Erro de tipo: a tabela produtos ja foi declarada`
 
 #### Colunas com o mesmo nome (`exemplos/erro9.txt`)
 
