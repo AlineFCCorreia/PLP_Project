@@ -1,0 +1,8 @@
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "", var i = 0, var a = false;
+  select idade, ativo into i, a from clientes where nome == "Bob";
+  (if a then write("Bob esta ativo") else write("Bob esta inativo"));
+  write(i + 1);
+  select * into n, i, a from clientes where idade == 10;
+  write(n)
+}

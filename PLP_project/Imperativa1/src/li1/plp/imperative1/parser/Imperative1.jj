@@ -796,6 +796,7 @@ Select PSelect() :
 {
 	Id id;
 	Lista<Id> colunas = null;
+	Lista<Id> variaveis = null;
 	Expressao condicao = null;
 }
 {
@@ -804,13 +805,16 @@ Select PSelect() :
 		<STAR>
 		| colunas = PListaId()
 	)
+	(
+		<INTO> variaveis = PListaId()
+	)?
 	<FROM>
 	id = PId()
 	(
 		<WHERE> condicao = PExpressao()
 	)?
 	{
-		return new Select(id, colunas, condicao);
+		return new Select(id, colunas, variaveis, condicao);
 	}
 }
 

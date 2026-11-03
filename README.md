@@ -44,7 +44,7 @@ A extensão adiciona à linguagem Imperativa 1 a definição de tabelas e dois c
 
 - `create-use` — definição de uma tabela no início do programa: cria a tabela se ela não existir, ou usa a existente se o esquema for compatível.
 - `insert into` — inserção de um registro na tabela.
-- `select [... where Expressao]` — consulta de dados, com filtragem opcional.
+- `select [... into Variaveis] [... where Expressao]` — consulta de dados, com filtragem opcional. Com `into`, o resultado é guardado em variáveis do programa.
 
 ## Exemplos de Uso
 
@@ -99,6 +99,14 @@ O comando `select` pode utilizar uma condição para filtrar os registros:
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
 select nome from clientes where idade == 25
+```
+
+### Guardar o resultado em variáveis
+
+Com `into`, os valores do registro selecionado são atribuídos a variáveis já declaradas, que podem ser usadas no restante do programa:
+
+```text
+select idade, ativo into i, a from clientes where nome == "Bob"
 ```
 
 ## BNF
@@ -175,8 +183,8 @@ CreateUse ::= "create-use" Id "(" ListaColunas ")"           [NOVO]
 Insert ::= "insert" "into" Id                                [NOVO]
            "values" "(" <a href="PLP_project/Imperativa1/src/li1/plp/imperative1/command/ListaExpressao.java">ListaExpressao</a> ")"
 
-Select ::= "select" "*" "from" Id ["where" Expressao]        [NOVO]
-         | "select" ListaId "from" Id ["where" Expressao]
+Select ::= "select" "*" ["into" ListaId] "from" Id ["where" Expressao]        [NOVO]
+         | "select" ListaId ["into" ListaId] "from" Id ["where" Expressao]
 
 ;-------------------------------------------------------
 ; Definições auxiliares
@@ -278,6 +286,10 @@ A condição do `where` é avaliada pelo interpretador da Imp1, e não traduzida
 
 A linguagem não possui `null`: todo registro tem um valor para cada coluna.
 
+### Resultado do `select` em variáveis
+
+A forma `select L into x1, ..., xn from T [where e]` atribui às variáveis os valores do registro selecionado. Como a linguagem não possui um tipo para coleções, o `into` exige que exatamente um registro seja selecionado, como o `SELECT ... INTO` do SQL padrão (e do PL/SQL do Oracle). Se nenhum registro ou mais de um for selecionado, a execução é interrompida com um erro. A quantidade de registros só é conhecida ao ler o banco, por isso esse erro é de execução, e não de tipo.
+
 ## Semântica Estática (`checaTipo`)
 
 Os erros de esquema são detectados na verificação de tipos, antes da execução.
@@ -317,13 +329,14 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 2. O número de expressões é igual ao número de colunas de `T` (se `T` tem `n` colunas, `m = n`).
 3. Cada `ei` é bem tipada, e seu tipo é igual ao da i-ésima coluna (correspondência posicional).
 
-### `select L from T [where e]`
+### `select L [into x1, ..., xn] from T [where e]`
 
 É bem tipado se:
 
 1. A tabela `T` existe no mapa de tabelas, ou seja, foi definida por um `create-use` no início do programa.
 2. Se `L` é uma lista de identificadores, cada um é uma coluna de `T`. Se `L` é `*`, todas as colunas são selecionadas.
 3. Se houver `where e`: em um escopo temporário em que cada coluna de `T` é mapeada para seu tipo, `e` é bem tipada e tem tipo `boolean`. Nesse escopo, uma coluna esconde uma variável de mesmo nome (sombreamento). O escopo é descartado ao fim da verificação.
+4. Se houver `into x1, ..., xn`: cada `xi` é uma variável declarada, `n` é igual ao número de colunas selecionadas (com `*`, o número de colunas de `T`), e o tipo de `xi` é igual ao da i-ésima coluna selecionada. Essa verificação é feita fora do escopo temporário do `where`, de modo que uma coluna não esconde a variável.
 
 ## Semântica Dinâmica (`executar`)
 
@@ -331,6 +344,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 
 1. Cada `create-use` é executado, na ordem em que aparece.
 2. Em seguida, o comando `C` é executado.
+
 
 ### `create-use`
 
@@ -344,11 +358,12 @@ Avalia as expressões `e1, ..., em` no ambiente de execução atual e grava um n
 
 1. Lê os registros da tabela, convertendo cada valor de volta para `ValorInteiro`, `ValorString` ou `ValorBooleano`, de acordo com o tipo da coluna.
 2. Se houver `where e`, avalia `e` para cada registro, em um escopo temporário em que cada coluna está associada ao seu valor, e mantém os registros em que o resultado é `true`.
-3. Escreve na saída cada valor selecionado, como um valor da linguagem, da mesma forma que o comando `write`: na ordem dos registros e, dentro de cada registro, na ordem das colunas pedidas. Se nenhum registro for selecionado, nada é escrito.
+3. Sem `into`, escreve na saída cada valor selecionado, como um valor da linguagem, da mesma forma que o comando `write`: na ordem dos registros e, dentro de cada registro, na ordem das colunas pedidas. Se nenhum registro for selecionado, nada é escrito.
+4. Com `into x1, ..., xn`, se exatamente um registro foi selecionado, atribui a cada `xi` o valor da i-ésima coluna selecionada, como o comando de atribuição. Caso contrário, lança `ResultadoSelectException`, sem alterar as variáveis.
 
    Exemplo: executando uma vez o programa da seção de exemplos de inserção, com a tabela inicialmente vazia, o comando `select * from clientes` produz a saída `"Alice" 25 true "Bob" 31 false`, e `select nome from clientes where idade == 25` produz `"Alice"`.
 
-O `select` não produz um valor utilizável pelo programa: o resultado vai apenas para a saída, pois ainda não há um tipo capaz de representar uma coleção de registros.
+Sem `into`, o resultado do `select` vai apenas para a saída. Com `into`, um único registro pode ser guardado em variáveis; percorrer vários registros fica como extensão futura (ver Limitações).
 
 ### Erros de execução
 
@@ -517,13 +532,28 @@ create-use clientes (nome string, idade int, ativo boolean);
 
 Saída: `resultado = "nenhum cliente com 100 anos"`. Um `select` sem registros não escreve nada e não é um erro.
 
-Os programas das seções 1 a 9 estão em `exemplos/exemplo1.txt` a `exemplo9.txt`. Para os exemplos 7 e 8, a entrada vai depois do nome do arquivo:
+### 10. Guardar o resultado em variáveis
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "", var i = 0, var a = false;
+  select idade, ativo into i, a from clientes where nome == "Bob";
+  (if a then write("Bob esta ativo") else write("Bob esta inativo"));
+  write(i + 1);
+  select * into n, i, a from clientes where idade == 10;
+  write(n)
+}
+```
+
+Saída: `resultado = "Bob esta inativo" 32 "Carla"`. As variáveis recebem os valores na ordem das colunas do `select`; com `*`, na ordem da tabela.
+
+Os programas das seções 1 a 10 estão em `exemplos/exemplo1.txt` a `exemplo10.txt`. Para os exemplos 7 e 8, a entrada vai depois do nome do arquivo:
 
 ```bash
 mvn -q exec:java "-Dfile=exemplos/exemplo7.txt Ana 40 true Bia 19 false"
 ```
 
-### 10. Erros
+### 11. Erros
 
 Os programas abaixo são rejeitados antes da execução, e o banco não é alterado. Em cada exemplo:
 
@@ -655,7 +685,76 @@ create-use clientes (nome string, idade int, ativo boolean);
 
 As colunas só são visíveis dentro do `where`.
 
-### 11. Erro de sintaxe
+#### Variável do into com o tipo errado (`exemplos/erro17.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = 0;
+  select nome into n from clientes where idade == 25;
+  write(n)
+}
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a variavel n nao tem o tipo da coluna nome`
+
+#### Número de variáveis diferente do número de colunas (`exemplos/erro18.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "";
+  select nome, idade into n from clientes where idade == 25;
+  write(n)
+}
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: o numero de variaveis do into e diferente do numero de colunas`
+
+#### Variável do into não declarada (`exemplos/erro19.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var x = 0;
+  select nome into n from clientes where idade == 25;
+  write(x)
+}
+```
+
+- Janela: `Variavel n nao declarada.`
+- Terminal: a stack trace de `VariavelNaoDeclaradaException`
+
+### 12. Erros de execução do `into`
+
+Estes programas são bem tipados, mas a execução é interrompida quando o `select` não seleciona exatamente um registro. Os comandos anteriores ao `select` já foram executados.
+
+#### Mais de um registro selecionado (`exemplos/erro15.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "";
+  select nome into n from clientes where ativo;
+  write(n)
+}
+```
+
+- Janela: `o select retornou mais de um registro`
+- Terminal: a stack trace de `ResultadoSelectException`
+
+#### Nenhum registro selecionado (`exemplos/erro16.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "";
+  select nome into n from clientes where idade == 100;
+  write(n)
+}
+```
+
+- Janela: `o select nao retornou nenhum registro`
+- Terminal: a stack trace de `ResultadoSelectException`
+
+### 13. Erro de sintaxe
 
 ```text
 { var x = 1;
@@ -687,4 +786,5 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [x] Verificação de tipos do `create-use`, incluindo a comparação com o esquema do banco
 - [x] `insert into`
 - [x] `select`
+- [x] `select ... into`, com o resultado guardado em variáveis
 - [x] Tratamento de erros do banco com exceções

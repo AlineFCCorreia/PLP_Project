@@ -1,9 +1,12 @@
 package li1.plp.imperative1.command;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import li1.plp.expressions1.util.Tipo;
 import li1.plp.expressions2.expression.Expressao;
 import li1.plp.expressions2.expression.Id;
 import li1.plp.expressions2.expression.Valor;
@@ -14,14 +17,18 @@ import li1.plp.imperative1.memory.AmbienteCompilacaoImperativa;
 import li1.plp.imperative1.memory.AmbienteExecucaoImperativa;
 import li1.plp.imperative1.memory.EntradaVaziaException;
 import li1.plp.imperative1.memory.ErroTipoEntradaException;
+import li1.plp.imperative1.memory.ResultadoSelectException;
 import li1.plp.imperative1.util.Lista;
 import li1.plp.imperative1.util.Coluna;
 import li1.plp.imperative1.util.ErroTipo;
 import li1.plp.imperative1.util.SqliteManager;
 
+
+
 /**
- * Representa o comando {@code select L from T [where e]} da ImpSQL.
- * {@code colunas == null} representa o {@code *}, e
+ * Representa o comando {@code select L [into V] from T [where e]} da ImpSQL.
+ * {@code colunas == null} representa o {@code *},
+ * {@code variaveis == null} representa a ausência de {@code into}, e
  * {@code condicao == null} representa a ausência de {@code where}.
  */
 public class Select implements Comando {
@@ -29,16 +36,20 @@ public class Select implements Comando {
     private Id id;
     private Lista<Id> colunas;
     private Expressao condicao;
+    private Lista<Id> variaveis;   // null quando não há into
 
-    public Select(Id id, Lista<Id> colunas, Expressao condicao) {
+    public Select(Id id, Lista<Id> colunas, Lista<Id> variaveis, Expressao condicao) {
         this.id = id;
         this.colunas = colunas;
+        this.variaveis = variaveis;
         this.condicao = condicao;
     }
 
     /**
-     * Lê os registros da tabela, filtra com o where e escreve na saída
-     * os valores das colunas selecionadas.
+     * Lê os registros da tabela e filtra com o where. Sem into, escreve na
+     * saída os valores das colunas selecionadas. Com into, atribui às
+     * variáveis os valores do único registro selecionado; se nenhum ou mais
+     * de um registro for selecionado, lança ResultadoSelectException.
      */
     @Override
     public AmbienteExecucaoImperativa executar(AmbienteExecucaoImperativa ambiente)
@@ -46,11 +57,25 @@ public class Select implements Comando {
             EntradaVaziaException, ErroTipoEntradaException {
 
         List<LinkedHashMap<Id, Valor>> registros = SqliteManager.getInstance().lerRegistros(id);
+        List<LinkedHashMap<Id, Valor>> selecionados = new ArrayList<LinkedHashMap<Id, Valor>>();
 
         for (LinkedHashMap<Id, Valor> registro : registros) {
             if (condicao == null || satisfazCondicao(registro, ambiente)) {
+                selecionados.add(registro);
+            }
+        }
+
+        if (variaveis == null) {
+            for (LinkedHashMap<Id, Valor> registro : selecionados) {
                 escreverRegistro(registro, ambiente);
             }
+        } else {
+            if (selecionados.size() != 1) {
+                throw new ResultadoSelectException(selecionados.isEmpty()
+                        ? "o select nao retornou nenhum registro"
+                        : "o select retornou mais de um registro");
+            }
+            atribuirRegistro(selecionados.get(0), ambiente);
         }
         return ambiente;
     }
@@ -95,21 +120,48 @@ public class Select implements Comando {
     }
 
     /**
+     * Atribui às variáveis do into os valores das colunas selecionadas,
+     * na ordem do select.
+     */
+    private void atribuirRegistro(LinkedHashMap<Id, Valor> registro,
+            AmbienteExecucaoImperativa ambiente)
+            throws IdentificadorNaoDeclaradoException {
+
+        Lista<Id> variavel = variaveis;
+        Lista<Id> coluna = colunas;
+        Iterator<Valor> valoresTabela = registro.values().iterator();
+
+        while (variavel != null && variavel.getHead() != null) {
+            Valor valor;
+            if (colunas == null) {
+                valor = valoresTabela.next();               // select *: ordem da tabela
+            } else {
+                valor = registro.get(coluna.getHead());     // ordem do select
+                coluna = coluna.getTail();
+            }
+            ambiente.changeValor(variavel.getHead(), valor);
+            variavel = variavel.getTail();
+        }
+    }
+
+    /**
      * Verifica se o select é bem tipado: a tabela foi definida por um
-     * create-use, as colunas pedidas existem na tabela e, se houver where,
-     * a condição é bem tipada e booleana.
+     * create-use, as colunas pedidas existem na tabela, se houver where,
+     * a condição é bem tipada e booleana, e, se houver into, as variáveis
+     * foram declaradas, são tantas quanto as colunas e têm os tipos delas.
      */
     @Override
     public boolean checaTipo(AmbienteCompilacaoImperativa ambiente)
             throws IdentificadorJaDeclaradoException, IdentificadorNaoDeclaradoException,
             EntradaVaziaException {
 
-        // Esquema da tabela
-        Lista<Coluna> esquema = ambiente.getTabela(id);
+        
+        Lista<Coluna> esquema = ambiente.getTabela(id); // Esquema da tabela
 
-        return esquema != null                              // a tabela foi definida, nunca vem null
-                && colunasExistem(esquema)                  // as colunas pedidas existem
-                && condicaoBemTipada(ambiente, esquema);    // o where é booleano
+        return esquema != null                                 // a tabela foi definida, nunca vem null
+                && colunasExistem(esquema)                    // as colunas pedidas existem
+                && condicaoBemTipada(ambiente, esquema)       // o where é booleano
+                && variaveisCompativeis(ambiente, esquema);   // o into combina com as colunas
     }
 
     /**
@@ -161,19 +213,82 @@ public class Select implements Comando {
      * Indica se a coluna faz parte do esquema da tabela.
      */
     private boolean existeColuna(Lista<Coluna> esquema, Id nome) {
+        return buscarColuna(esquema, nome) != null;
+    }
+
+    /**
+     * Verifica se cada variável do into foi declarada e tem o tipo da
+     * coluna correspondente, e se há tantas variáveis quanto colunas.
+     * A verificação é feita fora do escopo do where, para que uma coluna
+     * não esconda uma variável de mesmo nome. Sem into, o resultado é true.
+     */
+    private boolean variaveisCompativeis(AmbienteCompilacaoImperativa ambiente, Lista<Coluna> esquema) 
+            throws IdentificadorNaoDeclaradoException{
+
+        if (variaveis == null) {
+            return true;
+        }
+
+        Lista<Id> variavel = variaveis;
+        Lista<Coluna> coluna = colunasSelecionadas(esquema);
+         while (variavel != null && variavel.getHead() != null
+            && coluna != null && coluna.getHead() != null) {
+                Tipo tipoVariavel = ambiente.get(variavel.getHead());   // lança se não declarada
+                if (!tipoVariavel.eIgual(coluna.getHead().getTipo())) {
+                    return ErroTipo.erro("a variavel " + variavel.getHead()
+                            + " nao tem o tipo da coluna " + coluna.getHead().getId());
+                }
+        variavel = variavel.getTail();
+        coluna = coluna.getTail();
+        }
+        // As duas listas precisam terminar juntas, como no mesmoEsquema.
+        boolean fimVariaveis = variavel == null || variavel.getHead() == null;
+        boolean fimColunas = coluna == null || coluna.getHead() == null;
+        return (fimVariaveis && fimColunas)
+                || ErroTipo.erro("o numero de variaveis do into e diferente do numero de colunas");
+
+    }
+    /**
+     * Devolve as colunas lidas pelo select, com seus tipos, na ordem do
+     * resultado: todas as da tabela no select *, ou as pedidas, na ordem
+     * do select.
+     */
+    private Lista<Coluna> colunasSelecionadas(Lista<Coluna> esquema) {
+        if (colunas == null) {
+            return esquema;
+        }
+        return buscarColunas(colunas, esquema);
+    }
+
+    /**
+     * Monta a lista de colunas do esquema correspondentes aos nomes, na
+     * ordem dos nomes.
+     */
+    private Lista<Coluna> buscarColunas(Lista<Id> nomes, Lista<Coluna> esquema) {
+        if (nomes == null || nomes.getHead() == null) {
+            return new Lista<Coluna>();
+        }
+        return new Lista<Coluna>(buscarColuna(esquema, nomes.getHead()),
+                buscarColunas(nomes.getTail(), esquema));
+    }
+
+    /**
+     * Devolve a coluna do esquema com o nome dado.
+     */
+    private Coluna buscarColuna(Lista<Coluna> esquema, Id nome) {
         Lista<Coluna> aux = esquema;
         while (aux != null && aux.getHead() != null) {
             if (aux.getHead().getId().equals(nome)) {
-                return true;
+                return aux.getHead();
             }
             aux = aux.getTail();
         }
-        return false;
+        return null;
     }
 
     @Override
     public String toString() {
-        return "SELECT " + (colunas == null ? "*" : colunas.toString())
+        return "SELECT " + (colunas == null ? "*" : colunas.toString()) + (variaveis == null ? "" : " INTO " + variaveis.toString())
                 + " FROM " + id + (condicao == null ? "" : " WHERE " + condicao);
     }
 }
