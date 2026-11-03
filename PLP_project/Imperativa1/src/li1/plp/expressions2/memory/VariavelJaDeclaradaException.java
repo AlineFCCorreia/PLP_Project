@@ -10,6 +10,6 @@ public class VariavelJaDeclaradaException extends IdentificadorJaDeclaradoExcept
 	private static final long serialVersionUID = 1L;
 
 	public VariavelJaDeclaradaException(Id id){
-		super("Vari�vel " + id + " j� declarada.");
+		super("Variavel " + id + " ja declarada.");
 	}
 }

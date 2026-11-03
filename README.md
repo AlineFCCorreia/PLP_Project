@@ -524,43 +524,124 @@ Os programas das seções 1 a 9 estão em `exemplos/exemplo1.txt` a `exemplo9.tx
 mvn -q exec:java "-Dfile=exemplos/exemplo7.txt Ana 40 true Bia 19 false"
 ```
 
-### 10. Erros de tipo
+### 10. Erros
 
-Todos os programas abaixo são rejeitados antes da execução, com `erro de tipos!`, e o banco não é alterado:
+Os programas abaixo são rejeitados antes da execução, e o banco não é alterado. Em cada exemplo:
 
-| Programa | Motivo |
-|---|---|
-| `create-use clientes (nome string, idade string, ativo boolean); select * from clientes` | o esquema é diferente do que está no banco |
-| `create-use clientes (nome string, idade int, ativo boolean); insert into clientes values ("Ana", "vinte", true)` | `"vinte"` não é `int` |
-| `create-use clientes (nome string, idade int, ativo boolean); insert into clientes values ("Ana", 20)` | faltam valores |
-| `create-use clientes (nome string, idade int, ativo boolean); select email from clientes` | `email` não é coluna de `clientes` |
-| `create-use clientes (nome string, idade int, ativo boolean); select nome from clientes where idade` | a condição não é `boolean` |
-| `create-use produtos (nome string, preco int); create-use produtos (nome string); select * from produtos` | a mesma tabela foi definida com dois esquemas |
-| `create-use produtos (nome string, nome int); select * from produtos` | duas colunas com o mesmo nome |
-| `insert` com `("Zeca", true, 10)` dentro de um `if` | os valores estão fora de ordem; o erro é detectado mesmo num ramo que não seria executado |
+- **Janela**: o que aparece na caixa Mensagens da `AppUI`, que é a resposta do interpretador.
+- **Terminal**: o que aparece no terminal de onde a `AppUI` foi aberta, com o motivo do erro.
 
-No terminal, cada erro é precedido de uma mensagem `[ImpSQL] Erro de tipo: ...` com o motivo.
+#### Esquema diferente do que está no banco (`exemplos/erro1.txt`)
 
-Usar uma tabela que não foi definida por um `create-use` também é rejeitado antes da execução, mas com uma mensagem própria. Isso vale mesmo que a tabela exista no banco, criada por outro programa:
+```text
+create-use clientes (nome string, idade string, ativo boolean);
+select * from clientes
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a tabela clientes ja existe no banco com outro esquema`
+
+#### Mesma tabela definida com dois esquemas (`exemplos/erro8.txt`)
+
+```text
+create-use produtos (nome string, preco int);
+create-use produtos (nome string);
+select * from produtos
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a tabela produtos foi definida antes com outro esquema`
+
+#### Colunas com o mesmo nome (`exemplos/erro9.txt`)
+
+```text
+create-use produtos (nome string, nome int);
+select * from produtos
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a tabela produtos tem duas colunas chamadas nome`
+
+#### Valor com o tipo errado (`exemplos/erro2.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+insert into clientes values ("Ana", "vinte", true)
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: o valor da coluna idade deveria ser INTEIRO, mas e STRING`
+
+#### Número de valores diferente do número de colunas (`exemplos/erro3.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+insert into clientes values ("Ana", 20)
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a tabela clientes tem 3 colunas, mas foram dados 2 valores`
+
+#### Erro em um ramo que não seria executado (`exemplos/erro11.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = 0;
+  (while not (n == 3) do n := n + 1);
+  (if n == 3 then skip
+   else insert into clientes values ("Zeca", true, 10))
+}
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: o valor da coluna idade deveria ser INTEIRO, mas e BOOLEANO`
+
+A verificação de tipos analisa o programa inteiro, inclusive o ramo `else`, que nunca seria executado.
+
+#### Coluna que não pertence à tabela (`exemplos/erro4.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+select email from clientes
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: email nao e uma coluna da tabela clientes`
+
+#### Condição do where que não é booleana (`exemplos/erro5.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+select nome from clientes where idade
+```
+
+- Janela: `sintaxe verificada com sucesso!` `erro de tipos!`
+- Terminal: `[ImpSQL] Erro de tipo: a condicao do where nao e booleana`
+
+#### Tabela sem create-use (`exemplos/erro6.txt` e `erro10.txt`)
 
 ```text
 insert into produtos values ("caneta")
 ```
 
-Saída: `Tabela produtos nao definida por um create-use neste programa.`
+- Janela: `Tabela produtos nao definida por um create-use neste programa.`
+- Terminal: a stack trace de `TabelaNaoDeclaradaException`
 
-O mesmo acontece com `select * from clientes` sem nenhum `create-use` (`exemplos/erro10.txt`).
+O erro acontece mesmo que a tabela exista no banco, criada por outro programa.
 
-Uma coluna que não pertence à tabela, usada no `where`, é tratada como variável não declarada (`exemplos/erro12.txt`):
+#### Coluna inexistente no where (`exemplos/erro12.txt`)
 
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
 select nome from clientes where cidade == "Recife"
 ```
 
-Saída: `Variável cidade não declarada.`
+- Janela: `Variavel cidade nao declarada.`
+- Terminal: a stack trace de `VariavelNaoDeclaradaException`
 
-As colunas só são visíveis dentro do `where`. Depois do `select`, `nome` não existe (`exemplos/erro13.txt`):
+No `where`, um nome que não é coluna é procurado entre as variáveis.
+
+#### Coluna usada fora do where (`exemplos/erro13.txt`)
 
 ```text
 create-use clientes (nome string, idade int, ativo boolean);
@@ -570,9 +651,10 @@ create-use clientes (nome string, idade int, ativo boolean);
 }
 ```
 
-Saída: `Variável nome não declarada.`
+- Janela: `Variavel nome nao declarada.`
+- Terminal: a stack trace de `VariavelNaoDeclaradaException`
 
-Os programas desta seção estão em `exemplos/erro1.txt` a `erro6.txt` e `erro8.txt` a `erro13.txt`.
+As colunas só são visíveis dentro do `where`.
 
 ### 11. Erro de sintaxe
 

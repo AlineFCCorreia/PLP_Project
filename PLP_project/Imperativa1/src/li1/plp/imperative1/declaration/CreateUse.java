@@ -142,7 +142,7 @@ public class CreateUse{
      */
     private boolean compativelComBanco() {
         Lista<Coluna> esquemaBanco = SqliteManager.getInstance().lerEsquema(id);
-        return esquemaBanco == null || mesmoEsquema(esquemaBanco) || ErroTipo.erro("o esquema de " + id + " e diferente do da tabela no banco");
+        return esquemaBanco == null || mesmoEsquema(esquemaBanco) || ErroTipo.erro("a tabela " + id + " ja existe no banco com outro esquema");
     }
 
     @Override

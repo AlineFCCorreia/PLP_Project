@@ -72,8 +72,8 @@ public class SwingInterpretadorPLP extends JFrame {
 		Dimension d;
 		int w, h;
 
-		w = 390;
-		h = 480;
+		w = 900;
+		h = 700;
 
 		d = Toolkit.getDefaultToolkit().getScreenSize();
 		d.height /= 2;
@@ -93,20 +93,20 @@ public class SwingInterpretadorPLP extends JFrame {
 	private JPanel getJContentPane() {
 		if (jContentPane == null) {
 			jLabelListaEntrada = new JLabel();
-			jLabelListaEntrada.setBounds(new java.awt.Rectangle(20, 194, 127,
+			jLabelListaEntrada.setBounds(new java.awt.Rectangle(20, 294, 127,
 					20));
 			jLabelListaEntrada
 					.setToolTipText("informe os valores da lista de entrada separados por espaços");
 			jLabelListaEntrada.setText("Lista de Entrada");
 			jLabelExecutar = new JLabel();
-			jLabelExecutar.setBounds(new java.awt.Rectangle(19, 434, 157, 17));
+			jLabelExecutar.setBounds(new java.awt.Rectangle(19, 634, 157, 17));
 			jLabelExecutar.setText("Pressione F1 para executar");
 			jLabelMasg = new JLabel();
-			jLabelMasg.setBounds(new java.awt.Rectangle(20, 245, 80, 16));
+			jLabelMasg.setBounds(new java.awt.Rectangle(20, 345, 80, 16));
 			jLabelMasg.setText("Mensagens");
 			jLabelCodigo = new JLabel();
 			jLabelCodigo.setBounds(new java.awt.Rectangle(20, 33, 70, 16));
-			jLabelCodigo.setText("Código");
+			jLabelCodigo.setText("Codigo");
 			jContentPane = new JPanel();
 			jContentPane.setLayout(null);
 			jContentPane.add(getJScrollPaneMensagens(), null);
@@ -145,8 +145,8 @@ public class SwingInterpretadorPLP extends JFrame {
 	private JScrollPane getJScrollPaneMensagens() {
 		if (jScrollPaneMensagens == null) {
 			jScrollPaneMensagens = new JScrollPane();
-			jScrollPaneMensagens.setBounds(new java.awt.Rectangle(20, 267, 350,
-					160));
+			jScrollPaneMensagens.setBounds(new java.awt.Rectangle(20, 367, 860,
+					260));
 			jScrollPaneMensagens.setViewportView(getJTextAreaMensagens());
 		}
 		return jScrollPaneMensagens;
@@ -173,7 +173,7 @@ public class SwingInterpretadorPLP extends JFrame {
 		if (jScrollPaneCodigo == null) {
 			jScrollPaneCodigo = new JScrollPane();
 			jScrollPaneCodigo
-					.setBounds(new java.awt.Rectangle(20, 52, 350, 134));
+					.setBounds(new java.awt.Rectangle(20, 52, 860, 234));
 			jScrollPaneCodigo.setViewportView(getJTextAreaCodigo());
 		}
 		return jScrollPaneCodigo;
@@ -227,7 +227,7 @@ public class SwingInterpretadorPLP extends JFrame {
 	private JButton getJButton() {
 		if (jButtonExecutar == null) {
 			jButtonExecutar = new JButton();
-			jButtonExecutar.setBounds(new java.awt.Rectangle(283, 8, 86, 19));
+			jButtonExecutar.setBounds(new java.awt.Rectangle(793, 8, 86, 19));
 			jButtonExecutar.setText("executar");
 			jButtonExecutar
 					.addActionListener(new java.awt.event.ActionListener() {
@@ -252,8 +252,8 @@ public class SwingInterpretadorPLP extends JFrame {
 	private JTextField getJTextFieldListaEntrada() {
 		if (jTextFieldListaEntrada == null) {
 			jTextFieldListaEntrada = new JTextField();
-			jTextFieldListaEntrada.setBounds(new java.awt.Rectangle(20, 218,
-					350, 20));
+			jTextFieldListaEntrada.setBounds(new java.awt.Rectangle(20, 318,
+					860, 20));
 			jTextFieldListaEntrada
 					.setToolTipText("informe os valores da lista de entrada separados por espaços");
 		}

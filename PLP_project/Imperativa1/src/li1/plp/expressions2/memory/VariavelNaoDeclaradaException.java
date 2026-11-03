@@ -10,6 +10,6 @@ public class VariavelNaoDeclaradaException extends IdentificadorNaoDeclaradoExce
 	private static final long serialVersionUID = 1L;
 
 	public VariavelNaoDeclaradaException(Id id){
-		super("Vari�vel " + id + " n�o declarada.");
+		super("Variavel " + id + " nao declarada.");
 	}
 }
