@@ -26,30 +26,35 @@ import li1.plp.imperative1.util.SqliteManager;
 
 
 /**
- * Representa o comando {@code select L [into V] from T [where e]} da ImpSQL.
- * {@code colunas == null} representa o {@code *},
- * {@code variaveis == null} representa a ausência de {@code into}, e
- * {@code condicao == null} representa a ausência de {@code where}.
+ * Representa o comando {@code select L [into V] from T [where e] [do C]}
+ * da ImpSQL. {@code colunas == null} representa o {@code *},
+ * {@code variaveis == null} representa a ausência de {@code into},
+ * {@code condicao == null} representa a ausência de {@code where}, e
+ * {@code comando == null} representa a ausência de {@code do}.
  */
 public class Select implements Comando {
 
     private Id id;
     private Lista<Id> colunas;
     private Expressao condicao;
-    private Lista<Id> variaveis;   // null quando não há into
+    private Lista<Id> variaveis;   
+    private Comando comando;
 
-    public Select(Id id, Lista<Id> colunas, Lista<Id> variaveis, Expressao condicao) {
+    public Select(Id id, Lista<Id> colunas, Lista<Id> variaveis, Expressao condicao, Comando comando) {
         this.id = id;
         this.colunas = colunas;
         this.variaveis = variaveis;
         this.condicao = condicao;
+        this.comando = comando;
     }
 
     /**
      * Lê os registros da tabela e filtra com o where. Sem into, escreve na
-     * saída os valores das colunas selecionadas. Com into, atribui às
-     * variáveis os valores do único registro selecionado; se nenhum ou mais
-     * de um registro for selecionado, lança ResultadoSelectException.
+     * saída os valores das colunas selecionadas. Com into e do, para cada
+     * registro selecionado, atribui os valores às variáveis e executa o
+     * comando. Com into e sem do, atribui às variáveis os valores do único
+     * registro selecionado; se nenhum ou mais de um registro for
+     * selecionado, lança ResultadoSelectException.
      */
     @Override
     public AmbienteExecucaoImperativa executar(AmbienteExecucaoImperativa ambiente)
@@ -66,8 +71,13 @@ public class Select implements Comando {
         }
 
         if (variaveis == null) {
-            for (LinkedHashMap<Id, Valor> registro : selecionados) {
+            for (LinkedHashMap<Id, Valor> registro: selecionados) {
                 escreverRegistro(registro, ambiente);
+            }  
+        } else if (comando != null){
+            for (LinkedHashMap<Id, Valor> registro: selecionados) {
+                atribuirRegistro(registro, ambiente);
+                comando.executar(ambiente);
             }
         } else {
             if (selecionados.size() != 1) {
@@ -147,8 +157,9 @@ public class Select implements Comando {
     /**
      * Verifica se o select é bem tipado: a tabela foi definida por um
      * create-use, as colunas pedidas existem na tabela, se houver where,
-     * a condição é bem tipada e booleana, e, se houver into, as variáveis
-     * foram declaradas, são tantas quanto as colunas e têm os tipos delas.
+     * a condição é bem tipada e booleana, se houver into, as variáveis
+     * foram declaradas, são tantas quanto as colunas e têm os tipos delas,
+     * e, se houver do, o comando é bem tipado.
      */
     @Override
     public boolean checaTipo(AmbienteCompilacaoImperativa ambiente)
@@ -158,12 +169,12 @@ public class Select implements Comando {
         
         Lista<Coluna> esquema = ambiente.getTabela(id); // Esquema da tabela
 
-        return esquema != null                                 // a tabela foi definida, nunca vem null
-                && colunasExistem(esquema)                    // as colunas pedidas existem
-                && condicaoBemTipada(ambiente, esquema)       // o where é booleano
-                && variaveisCompativeis(ambiente, esquema);   // o into combina com as colunas
-    }
-
+        return esquema != null                                       // a tabela foi definida, nunca vem null
+                && colunasExistem(esquema)                           // as colunas pedidas existem
+                && condicaoBemTipada(ambiente, esquema)              // o where é booleano
+                && variaveisCompativeis(ambiente, esquema)           // o into combina com as colunas
+                && (comando == null || comando.checaTipo(ambiente)); // o corpo do do é bem tipado.
+    } 
     /**
      * Verifica se cada coluna pedida existe na tabela.
      * No select *, não há colunas pedidas, e o resultado é true.
@@ -288,7 +299,10 @@ public class Select implements Comando {
 
     @Override
     public String toString() {
-        return "SELECT " + (colunas == null ? "*" : colunas.toString()) + (variaveis == null ? "" : " INTO " + variaveis.toString())
-                + " FROM " + id + (condicao == null ? "" : " WHERE " + condicao);
+        return "SELECT " + (colunas == null ? "*" : colunas.toString())
+                + (variaveis == null ? "" : " INTO " + variaveis)
+                + " FROM " + id
+                + (condicao == null ? "" : " WHERE " + condicao)
+                + (comando == null ? "" : " DO " + comando);
     }
 }

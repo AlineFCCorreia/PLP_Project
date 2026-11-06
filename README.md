@@ -44,7 +44,7 @@ A extensão adiciona à linguagem Imperativa 1 a definição de tabelas e dois c
 
 - `create-use` — definição de uma tabela no início do programa: cria a tabela se ela não existir, ou usa a existente se o esquema for compatível.
 - `insert into` — inserção de um registro na tabela.
-- `select [... into Variaveis] [... where Expressao]` — consulta de dados, com filtragem opcional. Com `into`, o resultado é guardado em variáveis do programa.
+- `select [... into Variaveis] [... where Expressao] [do Comando]` — consulta de dados, com filtragem opcional. Com `into`, o resultado é guardado em variáveis do programa; com `into` e `do`, um comando é executado para cada registro selecionado.
 
 ## Exemplos de Uso
 
@@ -107,6 +107,17 @@ Com `into`, os valores do registro selecionado são atribuídos a variáveis já
 
 ```text
 select idade, ativo into i, a from clientes where nome == "Bob"
+```
+
+### Percorrer os registros
+
+Com `into` e `do`, o comando é executado uma vez para cada registro selecionado, com os valores do registro atribuídos às variáveis:
+
+```text
+(select nome, idade into n, i from clientes where ativo do (
+    write(n);
+    soma := soma + i
+))
 ```
 
 ## BNF
@@ -183,8 +194,8 @@ CreateUse ::= "create-use" Id "(" ListaColunas ")"           [NOVO]
 Insert ::= "insert" "into" Id                                [NOVO]
            "values" "(" <a href="PLP_project/Imperativa1/src/li1/plp/imperative1/command/ListaExpressao.java">ListaExpressao</a> ")"
 
-Select ::= "select" "*" ["into" ListaId] "from" Id ["where" Expressao]        [NOVO]
-         | "select" ListaId ["into" ListaId] "from" Id ["where" Expressao]
+Select ::= "select" Colunas "from" Id ["where" Expressao]        [NOVO]
+         | "select" Colunas "into" ListaId "from" Id ["where" Expressao] ["do" Comando]
 
 ;-------------------------------------------------------
 ; Definições auxiliares
@@ -204,6 +215,9 @@ ListaExpressao ::= Expressao
 
 ListaId ::= Id
           | Id "," ListaId
+
+Colunas ::= "*" | ListaId
+
 </pre>
 
 
@@ -290,6 +304,16 @@ A linguagem não possui `null`: todo registro tem um valor para cada coluna.
 
 A forma `select L into x1, ..., xn from T [where e]` atribui às variáveis os valores do registro selecionado. Como a linguagem não possui um tipo para coleções, o `into` exige que exatamente um registro seja selecionado, como o `SELECT ... INTO` do SQL padrão (e do PL/SQL do Oracle). Se nenhum registro ou mais de um for selecionado, a execução é interrompida com um erro. A quantidade de registros só é conhecida ao ler o banco, por isso esse erro é de execução, e não de tipo.
 
+### Iteração sobre o resultado do `select`
+
+Para utilizar consultas com vários registros, a forma `select L into x1, ..., xn from T [where e] do C` executa o comando `C` uma vez para cada registro selecionado, com os valores do registro atribuídos às variáveis. É o mesmo laço implícito com que o `select` escreve os registros na saída, executando `C` no lugar da escrita, de forma semelhante ao cursor FOR loop do PL/SQL.
+
+- O `do` só pode ser usado com `into`, o que é garantido pela gramática: é pelas variáveis que o comando acessa os valores de cada registro.
+- As colunas não são visíveis em `C`, apenas no `where`. Uma variável com o nome de uma coluna, dentro de `C`, é a variável do programa.
+- Os registros são selecionados antes da execução de `C`. Assim, se `C` alterar uma variável usada no `where` ou inserir registros na mesma tabela, o conjunto de registros percorridos não muda.
+- Se nenhum registro for selecionado, `C` não é executado, e não há erro. Ao final, as variáveis ficam com os valores do último registro.
+- Como no `while`, o comando após o `do` se estende até o fim da sequência. Para continuar o programa depois do `select`, ele deve estar entre parênteses: `(select ... do C); C2`.
+
 ## Semântica Estática (`checaTipo`)
 
 Os erros de esquema são detectados na verificação de tipos, antes da execução.
@@ -329,7 +353,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 2. O número de expressões é igual ao número de colunas de `T` (se `T` tem `n` colunas, `m = n`).
 3. Cada `ei` é bem tipada, e seu tipo é igual ao da i-ésima coluna (correspondência posicional).
 
-### `select L [into x1, ..., xn] from T [where e]`
+### `select L [into x1, ..., xn] from T [where e] [do C]`
 
 É bem tipado se:
 
@@ -337,6 +361,7 @@ Efeito: registra `T ↦ (c1 t1, ..., cn tn)` no mapa de tabelas.
 2. Se `L` é uma lista de identificadores, cada um é uma coluna de `T`. Se `L` é `*`, todas as colunas são selecionadas.
 3. Se houver `where e`: em um escopo temporário em que cada coluna de `T` é mapeada para seu tipo, `e` é bem tipada e tem tipo `boolean`. Nesse escopo, uma coluna esconde uma variável de mesmo nome (sombreamento). O escopo é descartado ao fim da verificação.
 4. Se houver `into x1, ..., xn`: cada `xi` é uma variável declarada, `n` é igual ao número de colunas selecionadas (com `*`, o número de colunas de `T`), e o tipo de `xi` é igual ao da i-ésima coluna selecionada. Essa verificação é feita fora do escopo temporário do `where`, de modo que uma coluna não esconde a variável.
+5. Se houver `do C`: `C` é bem tipado no ambiente atual, fora do escopo temporário do `where`.
 
 ## Semântica Dinâmica (`executar`)
 
@@ -359,11 +384,13 @@ Avalia as expressões `e1, ..., em` no ambiente de execução atual e grava um n
 1. Lê os registros da tabela, convertendo cada valor de volta para `ValorInteiro`, `ValorString` ou `ValorBooleano`, de acordo com o tipo da coluna.
 2. Se houver `where e`, avalia `e` para cada registro, em um escopo temporário em que cada coluna está associada ao seu valor, e mantém os registros em que o resultado é `true`.
 3. Sem `into`, escreve na saída cada valor selecionado, como um valor da linguagem, da mesma forma que o comando `write`: na ordem dos registros e, dentro de cada registro, na ordem das colunas pedidas. Se nenhum registro for selecionado, nada é escrito.
-4. Com `into x1, ..., xn`, se exatamente um registro foi selecionado, atribui a cada `xi` o valor da i-ésima coluna selecionada, como o comando de atribuição. Caso contrário, lança `ResultadoSelectException`, sem alterar as variáveis.
 
-   Exemplo: executando uma vez o programa da seção de exemplos de inserção, com a tabela inicialmente vazia, o comando `select * from clientes` produz a saída `"Alice" 25 true "Bob" 31 false`, e `select nome from clientes where idade == 25` produz `"Alice"`.
+    Exemplo: executando uma vez o programa da seção de exemplos de inserção, com a tabela inicialmente vazia, o comando `select * from clientes` produz a saída `"Alice" 25 true "Bob" 31 false`, e `select nome from clientes where idade == 25` produz `"Alice"`.
 
-Sem `into`, o resultado do `select` vai apenas para a saída. Com `into`, um único registro pode ser guardado em variáveis; percorrer vários registros fica como extensão futura (ver Limitações).
+4. Com `into x1, ..., xn` e `do C`, para cada registro selecionado, na ordem dos registros, atribui a cada `xi` o valor da i-ésima coluna selecionada e executa `C`. Se nenhum registro for selecionado, `C` não é executado.
+5. Com `into x1, ..., xn` e sem `do`, se exatamente um registro foi selecionado, atribui a cada `xi` o valor da i-ésima coluna selecionada, como o comando de atribuição. Caso contrário, lança `ResultadoSelectException`, sem alterar as variáveis.
+
+Sem `into`, o resultado do `select` vai apenas para a saída. Com `into`, um único registro pode ser guardado em variáveis; com `into` e `do`, todos os registros selecionados podem ser percorridos.
 
 ### Erros de execução
 
@@ -518,7 +545,7 @@ create-use inativos (nome string);
 
 Entrada: `Caio true Dani false Edu true`
 
-Saída: `resultado = "ativos:" "Caio" "Edu" "inativos:" "Dani"`. 
+Saída: `resultado = "ativos:" "Caio" "Edu" "inativos:" "Dani"`.
 
 ### 9. Consulta sem resultados
 
@@ -547,13 +574,44 @@ create-use clientes (nome string, idade int, ativo boolean);
 
 Saída: `resultado = "Bob esta inativo" 32 "Carla"`. As variáveis recebem os valores na ordem das colunas do `select`; com `*`, na ordem da tabela.
 
-Os programas das seções 1 a 10 estão em `exemplos/exemplo1.txt` a `exemplo10.txt`. Para os exemplos 7 e 8, a entrada vai depois do nome do arquivo:
+### 11. Percorrer os registros com `do`
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "", var i = 0, var total = 0, var soma = 0;
+  (select nome, idade into n, i from clientes where ativo do (
+      write(n);
+      total := total + 1;
+      soma := soma + i
+  ));
+  write(total);
+  write(soma)
+}
+```
+
+Saída: `resultado = "Alice" "Carla" "Ana Silva" 3 75`. O comando é executado para cada cliente ativo, e as variáveis `total` e `soma` acumulam os valores entre as repetições.
+
+### 12. Inserção a partir de uma consulta
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+create-use aniversarios (nome string, idade int);
+{ var n = "", var i = 0;
+  (select nome, idade into n, i from clientes where not ativo do
+      insert into aniversarios values (n, i + 1));
+  select * from aniversarios
+}
+```
+
+Saída: `resultado = "Bob" 32 "Bia Silva" 20`. Para cada cliente inativo, um registro é inserido em outra tabela, com a idade calculada a partir do valor lido.
+
+Os programas das seções 1 a 12 estão em `exemplos/exemplo1.txt` a `exemplo12.txt`. Para os exemplos 7 e 8, a entrada vai depois do nome do arquivo:
 
 ```bash
 mvn -q exec:java "-Dfile=exemplos/exemplo7.txt Ana 40 true Bia 19 false"
 ```
 
-### 11. Erros
+### 13. Erros
 
 Os programas abaixo são rejeitados antes da execução, e o banco não é alterado. Em cada exemplo:
 
@@ -724,7 +782,21 @@ create-use clientes (nome string, idade int, ativo boolean);
 - Janela: `Variavel n nao declarada.`
 - Terminal: a stack trace de `VariavelNaoDeclaradaException`
 
-### 12. Erros de execução do `into`
+#### Coluna usada no corpo do `do` (`exemplos/erro21.txt`)
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "";
+  (select nome into n from clientes where ativo do write(idade))
+}
+```
+
+- Janela: `Variavel idade nao declarada.`
+- Terminal: a stack trace de `VariavelNaoDeclaradaException`
+
+No corpo do `do`, os valores do registro são acessados pelas variáveis do `into`; as colunas só são visíveis no `where`.
+
+### 14. Erros de execução do `into`
 
 Estes programas são bem tipados, mas a execução é interrompida quando o `select` não seleciona exatamente um registro. Os comandos anteriores ao `select` já foram executados.
 
@@ -754,7 +826,7 @@ create-use clientes (nome string, idade int, ativo boolean);
 - Janela: `o select nao retornou nenhum registro`
 - Terminal: a stack trace de `ResultadoSelectException`
 
-### 13. Erro de sintaxe
+### 15. Erro de sintaxe
 
 ```text
 { var x = 1;
@@ -767,14 +839,21 @@ O parser rejeita o programa: um `create-use` só pode aparecer no início. O pro
 
 Um programa só com `create-use`, sem comando, também é rejeitado pelo parser (`exemplos/erro14.txt`): a gramática exige um `Comando` depois da lista.
 
+Um `do` sem `into` também é rejeitado pelo parser (`exemplos/erro20.txt`), pois o comando não teria como acessar os valores dos registros:
+
+```text
+create-use clientes (nome string, idade int, ativo boolean);
+select nome from clientes where ativo do write(nome)
+```
+
 ## Limitações e Extensões Futuras
 
 - `update`: atualização de registros existentes.
 - `delete`: remoção de registros.
 - `drop table`: remoção de tabelas.
-- Iteração sobre o resultado de uma consulta (`for each ... in T where e do Comando`): o corpo é executado uma vez para cada registro, com as colunas visíveis como variáveis. Isso permite operar sobre os registros com os comandos da linguagem sem introduzir novos tipos, reaproveitando o escopo temporário usado na avaliação do `where`.
 - Valores nulos.
 - Execução na IDE web: a IDE web compila o interpretador para JavaScript com TeaVM, que não suporta JDBC. Executar a ImpSQL no navegador exigiria uma implementação das tabelas em memória, sem persistência entre execuções.
+- Módulos web: o `WebDebug` e a compilação do `AppUI` com TeaVM não foram adaptados à ImpSQL e não compilam com as alterações da Imperativa 1.
 
 ## Status da Implementação
 
@@ -787,4 +866,5 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [x] `insert into`
 - [x] `select`
 - [x] `select ... into`, com o resultado guardado em variáveis
+- [x] `select ... into ... do`, com iteração sobre os registros selecionados
 - [x] Tratamento de erros do banco com exceções

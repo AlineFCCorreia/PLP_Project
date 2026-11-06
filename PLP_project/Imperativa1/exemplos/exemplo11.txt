@@ -1,0 +1,10 @@
+create-use clientes (nome string, idade int, ativo boolean);
+{ var n = "", var i = 0, var total = 0, var soma = 0;
+  (select nome, idade into n, i from clientes where ativo do (
+      write(n);
+      total := total + 1;
+      soma := soma + i
+  ));
+  write(total);
+  write(soma)
+}

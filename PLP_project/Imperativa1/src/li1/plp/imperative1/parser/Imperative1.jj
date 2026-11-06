@@ -798,6 +798,7 @@ Select PSelect() :
 	Lista<Id> colunas = null;
 	Lista<Id> variaveis = null;
 	Expressao condicao = null;
+	Comando comando = null;
 }
 {
 	<SELECT>
@@ -806,15 +807,16 @@ Select PSelect() :
 		| colunas = PListaId()
 	)
 	(
+		<FROM> id = PId()
+		(<WHERE> condicao = PExpressao())?
+	|
 		<INTO> variaveis = PListaId()
-	)?
-	<FROM>
-	id = PId()
-	(
-		<WHERE> condicao = PExpressao()
-	)?
+		<FROM> id = PId()
+		(<WHERE> condicao = PExpressao())?
+		(<DO> comando = PComando())?
+	)
 	{
-		return new Select(id, colunas, variaveis, condicao);
+		return new Select(id, colunas, variaveis, condicao, comando);
 	}
 }
 

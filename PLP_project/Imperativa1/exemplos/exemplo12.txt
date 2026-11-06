@@ -1,0 +1,7 @@
+create-use clientes (nome string, idade int, ativo boolean);
+create-use aniversarios (nome string, idade int);
+{ var n = "", var i = 0;
+  (select nome, idade into n, i from clientes where not ativo do
+      insert into aniversarios values (n, i + 1));
+  select * from aniversarios
+}
