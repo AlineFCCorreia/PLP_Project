@@ -868,3 +868,13 @@ As seções de especificação acima descrevem a linguagem ImpSQL como definida 
 - [x] `select ... into`, com o resultado guardado em variáveis
 - [x] `select ... into ... do`, com iteração sobre os registros selecionados
 - [x] Tratamento de erros do banco com exceções
+
+## Apresentações
+
+Os slides apresentados na disciplina estão na pasta [`Documents/`](Documents):
+
+- [`ImpSQL_apresentacao_1.pdf`](Documents/ImpSQL_apresentacao_1.pdf) — primeira apresentação: proposta da linguagem, gramática inicial com `create table` e decisões de projeto.
+- [`ImpSQL_apresentacao_2.pdf`](Documents/ImpSQL_apresentacao_2.pdf) — apresentação final: substituição do `create table` pelo `create-use`, verificação de tipos, `insert` e `select`.
+- [`ImpSQL_apresentacao_3.pdf`](Documents/ImpSQL_apresentacao_3.pdf) — versão final, com as alterações pedidas pelo professor após a apresentação final: `create-use` sem repetição, `select ... into` e `select ... into ... do`.
+
+As apresentações 1 e 2 estão como foram apresentadas, por isso algumas partes não correspondem mais à versão final da linguagem.
